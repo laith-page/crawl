@@ -1,0 +1,49 @@
+.{
+    .name = .crawler,
+    .version = "0.3.17",
+    .fingerprint = 0xd42e5ea20b04dbc1,
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{
+        .certs = .{
+            .url = "https://zig.l3.ai/certs-0.2.1.tar.gz",
+            .hash = "certs-0.2.1-ekA0iM42AAC1DrlsHMuCWjoLgFPL2D71_ZUedKO_G1DD",
+        },
+        .cli = .{
+            .url = "https://zig.l3.ai/cli-0.2.6.tar.gz",
+            .hash = "cli-0.2.6-eDvQix-BAABtrYz9stASadXsC8mR92d_Fj4B7bSaUbVN",
+        },
+        .collections = .{
+            .url = "https://zig.l3.ai/collections-0.3.6.tar.gz",
+            .hash = "collections-0.3.6-08ggN98-AACWXQnycZspa3eDWq9OLQXXXGGDNJX8vSUH",
+        },
+        .html = .{
+            .url = "https://zig.l3.ai/html-0.2.6.tar.gz",
+            .hash = "html-0.2.6-drJhxsIRAgBhizJXfcDtJZ1INXB_s-rixBNTaGGnTzqR",
+        },
+        .http = .{
+            .url = "https://zig.l3.ai/http-0.3.6.tar.gz",
+            .hash = "http-0.3.6-5yk5Q5MJAQCQZa3MbwxxiX_z5tGBYHzJrFOT-l9Zuzb4",
+        },
+        .signals = .{
+            .url = "https://zig.l3.ai/signals-0.2.1.tar.gz",
+            .hash = "signals-0.2.1-oYEaARQMAACSQHpaza0AtxBagPcXbD2JnLRFBzeZyFcw",
+        },
+        .tls = .{
+            .url = "https://zig.l3.ai/tls-0.3.0.tar.gz",
+            .hash = "tls-0.3.0-UCQNbH1tAQBwnSlHC_A-b75ANAJpzW6K7Gz1M-x2C1WJ",
+        },
+        .@"whatwg-url" = .{
+            .url = "https://zig.l3.ai/whatwg_url-0.4.3.tar.gz",
+            .hash = "whatwg_url-0.4.3-yPjLVJWlBgCp2uxcbJ4jVkolRJFONyOmIa6UdpLqH9Lw",
+        },
+        .workers = .{
+            .url = "https://zig.l3.ai/workers-0.1.3.tar.gz",
+            .hash = "workers-0.1.3-hx0kIeM8AAAgOloR2u6JYzZH2fXpWBtsZJE_sBN-XRv4",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

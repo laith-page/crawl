@@ -1,0 +1,23 @@
+sequenceDiagram
+  actor User
+  participant Main
+  participant Crawler
+  participant Frontier
+  participant Workers
+  participant Fetcher
+  participant Server
+  User->>Main: crawl -n 1000 URL
+  Main->>Crawler: crawl(fetcher::fetch, output, stderr)
+  Crawler->>Frontier: pop()
+  Frontier-->>Crawler: URL
+  Crawler->>Workers: submit(URL)
+  Workers->>Fetcher: fetch(URL)
+  Fetcher->>Fetcher: throttle.start, set deadline
+  Fetcher->>Server: HTTP/1.1 GET
+  Server-->>Fetcher: status, headers, streamed body
+  Fetcher-->>Workers: Page(status, links or failure)
+  Workers-->>Crawler: Page
+  Crawler->>Crawler: tracker.record(Page)
+  Crawler-->>User: stdout: page line
+  Crawler->>Frontier: push(each link)
+  Crawler-->>User: stderr: summary after drain

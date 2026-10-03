@@ -1,0 +1,55 @@
+# The perf baseline, rewritten on the runner the perf job judges on and committed, as a reusable
+# workflow: a project's .github/workflows/perf-baseline.yml calls it (templates/perf-baseline.yml)
+# on a schedule and on dispatch, the way a change that moves the numbers on purpose lands.
+# The caller grants `contents: write`; the commit is github-actions[bot]'s.
+name: perf-baseline
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    concurrency:
+      group: perf-baseline-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1 # zizmor: ignore[artipacked]
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Install perf and strace
+        run: |
+          sudo apt-get update -qq >/dev/null
+          sudo apt-get install -y -qq --no-install-recommends linux-tools-common linux-tools-generic strace valgrind >/dev/null
+          sudo apt-get install -y -qq --no-install-recommends "linux-tools-$(uname -r)" >/dev/null 2>&1 || true
+          bin="$(find /usr/lib /usr/libexec -maxdepth 3 -type f -name perf -path '*linux-tools*' 2>/dev/null | sort -V | tail -1)"
+          if [ -n "$bin" ]; then sudo ln -sf "$bin" /usr/local/bin/perf; else echo "::notice::no perf binary on this runner image (linux-tools-generic left none): the pmu counter is off here"; fi
+          [ "$(cat /proc/sys/kernel/perf_event_paranoid)" -le 2 ] || sudo sysctl -w kernel.perf_event_paranoid=2
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 >/dev/null 2>&1 || true
+          sudo modprobe sch_netem 2>/dev/null ||
+            { sudo apt-get install -y -qq --no-install-recommends "linux-modules-extra-$(uname -r)" >/dev/null 2>&1 && sudo modprobe sch_netem; } ||
+            echo "::notice::no sch_netem on this runner's kernel: a sample that needs netem keeps its old number"
+          command -v perf >/dev/null && perf stat -x , -e instructions:u -- true 2>&1 | grep -q '^[0-9]' ||
+            echo "::notice::this runner exposes no PMU: a baseline counted by pmu is not written here (bench perf --update says so and fails)"
+      - run: mise run setup
+      - run: bun node_modules/@tools/core/src/cli.ts bench perf --update
+      - name: Commit if changed
+        env:
+          BASELINE: perf/baseline.jsonl
+        run: |
+          set -euo pipefail
+          git add -- "$BASELINE"
+          if git diff --quiet --cached; then echo "$BASELINE unchanged; nothing committed"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          class="$(sed -nE 's/.*the record for (.*) rewritten.*/\1/p' .tools/logs/perf.log 2>/dev/null | tail -1)"
+          git commit -m "Refresh the perf baseline ${{ github.event_name == 'schedule' && 'on schedule' || 'on dispatch' }}${class:+: $class}"
+          for attempt in 1 2 3; do
+            git push && exit 0
+            echo "push $attempt rejected"
+            [ "$attempt" -lt 3 ] && git pull --rebase origin "$GITHUB_REF_NAME"
+          done
+          echo "::error::the push was rejected three times"; exit 1

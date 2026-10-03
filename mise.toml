@@ -1,0 +1,35 @@
+# The toolchains, and the tasks: `mise run check` is the gate, `mise tasks` lists the rest (AGENTS.md).
+
+[settings]
+# Rust from rust-toolchain.toml, which rustup and cargo read too.
+idiomatic_version_file_enable_tools = ["rust"]
+
+[env]
+TOOLS_CACHE_URL = "https://cache.l3.ai"
+
+[task_config]
+includes = ["node_modules/@tools/core/tasks.toml"]
+
+[tasks.setup]
+description = "Install tools and the git hooks: the first command in a fresh clone"
+run = [
+  "bun install --frozen-lockfile",
+  "git config core.hooksPath node_modules/@tools/core/githooks",
+  "bun node_modules/@tools/core/src/cli.ts fixtures ensure mock/crawlme.warc.gz e2e/expected/crawlme.ndjson.zst mock/intl.json",
+]
+
+[tasks.baseline]
+description = "Rewrite perf/baseline.jsonl on CI's perf runner for the current branch, which gets the bot's commit"
+run = "gh workflow run perf-baseline.yml -r \"$(git branch --show-current)\" && echo 'the refresh runs about 10 minutes: gh run list -w perf-baseline.yml'"
+
+[tasks.native]
+description = "Build the GraalVM native executable as the release does (PGO, G1): tools' publish recipe for linux-x64"
+run = "RELEASE_PLATFORMS=linux-x64 RELEASE_NATIVE=true mise run dist"
+
+[tasks.smoke]
+description = "Smoke test the crawl runner and binary against live crawlme.fly.dev"
+run = "./crawl -v -n 10 -t 30 -f https://crawlme.fly.dev"
+
+[tasks.pgo-refresh]
+description = "Retrain the GraalVM PGO profile and upload it to the cache bucket (the weekly job)"
+run = "bun node_modules/@tools/core/src/cli.ts pgo refresh --graalvm --upload"

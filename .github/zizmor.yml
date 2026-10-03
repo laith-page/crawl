@@ -1,0 +1,12 @@
+# zizmor configuration: extends tools' defaults and disables self-repository
+# because actionlint does not yet support GitHub's $/ syntax for local actions.
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        "laith-page/*": ref-pin
+        "*": hash-pin
+  secrets-inherit:
+    disable: true
+  self-repository:
+    disable: true

@@ -1,0 +1,246 @@
+# The crawler CI pipeline:
+# - plan: tools' planned gate: a job per engine, the agreement, perf per engine
+# - run: partitioned gate stages across runners
+# - result: verdicts, agreement check, and triggering release on green main
+name: ci
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      flush_cache:
+        description: "Force cold run of all builds, tests, perf, and mock deploy"
+        type: boolean
+        default: false
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_INCREMENTAL: "0"
+  TOOLS_CACHE_FLUSH: ${{ (github.event.inputs.flush_cache == 'true' || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) && '1' || '0' }}
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}${{ github.event_name == 'workflow_dispatch' && format('-{0}', github.run_id) || '' }}
+  cancel-in-progress: true
+
+jobs:
+  plan:
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 5
+    outputs:
+      run_names: ${{ steps.plan.outputs.run_names }}
+      run_by: ${{ steps.plan.outputs.run_by }}
+      later: ${{ steps.plan.outputs.later }}
+      later_toolchains: ${{ steps.plan.outputs.later_toolchains }}
+      ship: ${{ steps.plan.outputs.ship }}
+      parts_names: ${{ steps.plan.outputs.parts_names }}
+      parts_by: ${{ steps.plan.outputs.parts_by }}
+      smoke_names: ${{ steps.plan.outputs.smoke_names }}
+      smoke_by: ${{ steps.plan.outputs.smoke_by }}
+      version: ${{ steps.plan.outputs.version }}
+      released: ${{ steps.plan.outputs.released }}
+      binaries_names: ${{ steps.plan.outputs.binaries_names }}
+      pgo: ${{ steps.plan.outputs.pgo }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          fetch-tags: true
+      - uses: ./.github/actions/setup
+        with:
+          toolchains: bun
+          cache: ${{ (github.event.inputs.flush_cache == 'true' || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) && 'false' || 'true' }}
+          full: "false"
+      - id: plan
+        env:
+          TOOLS_CACHE_URL: https://cache.l3.ai
+          TOOLS_CACHE_BUCKET: ""
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TOOLS_WHEN: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && 'main') || 'push' }}
+          TOOLS_MACOS: ""
+          TOOLS_MACOS_ADVISORY: ""
+          TOOLS_PERF_RUNNER: provider
+          TOOLS_TIMEOUT: "25"
+          TOOLS_RELEASE: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && '1' || '' }}
+          FLUSH: ${{ (github.event.inputs.flush_cache == 'true' || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) && '1' || '' }}
+          GH_TOKEN: ${{ github.token }}
+        run: |-
+          bun node_modules/@tools/core/src/cli.ts ci plan ${FLUSH:+--flush}
+          v=$(grep '^binaries=' "$GITHUB_OUTPUT" | tail -1 | cut -d= -f2-)
+          echo "binaries_names=$(jq -c 'map(.name)' <<< "${v:-[]}")" >> "$GITHUB_OUTPUT"
+
+  run:
+    needs: [plan]
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: ${{ github.event_name == 'pull_request' }}
+      matrix:
+        name: ${{ fromJSON(needs.plan.outputs.run_names) }}
+    runs-on: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].runner }}
+    timeout-minutes: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].timeout }}
+    continue-on-error: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].advisory }}
+    env:
+      TOOLS_CACHE_URL: https://cache.l3.ai
+      TOOLS_CACHE_BUCKET: ""
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      JOB: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].id }}
+      KIND: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].kind }}
+      TOOLS_CACHE_SLOT: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].id }}
+      TOOLS_BUILDING: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].kind != 'build' && fromJSON(needs.plan.outputs.run_by)[matrix.name].awaits && join(fromJSON(needs.plan.outputs.binaries_names || '[]'), ',') || '' }}
+      TOOLS_PGO: ${{ needs.plan.outputs.pgo }}
+      TOOLS_JOB_STAGES: ${{ toJSON(fromJSON(needs.plan.outputs.run_by)[matrix.name].stages) }}
+      TOOLS_WHEN: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && 'main') || 'push' }}
+      TOOLS_VERDICTS: ${{ ((github.event.inputs.flush_cache == 'true' || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) || fromJSON(needs.plan.outputs.run_by)[matrix.name].refresh) && '0' || '1' }}
+      FLY_API_TOKEN: ${{ (fromJSON(needs.plan.outputs.run_by)[matrix.name].kind == 'package') && secrets.FLY_API_TOKEN || '' }}
+      DOCKERHUB_USERNAME: ${{ (fromJSON(needs.plan.outputs.run_by)[matrix.name].kind == 'package') && secrets.DOCKERHUB_USERNAME || '' }}
+      DOCKERHUB_TOKEN: ${{ (fromJSON(needs.plan.outputs.run_by)[matrix.name].kind == 'package') && secrets.DOCKERHUB_TOKEN || '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].kind == 'verdicts' && 1 || 0 }}
+          persist-credentials: false
+      - name: Check out submodules
+        env:
+          ENGINE_DEPLOY_KEY: ${{ secrets.ENGINE_DEPLOY_KEY }}
+        run: |-
+          git config -f .gitmodules --get-regexp '^submodule[.].*[.]path$' >/dev/null 2>&1 || exit 0
+          ssh=()
+          if [ -n "$ENGINE_DEPLOY_KEY" ]; then
+            mkdir -p ~/.ssh && chmod 700 ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null
+            eval "$(ssh-agent -s)"
+            ssh-add - <<< "$ENGINE_DEPLOY_KEY"
+            ssh=(-c 'url.git@github.com:.insteadOf=https://github.com/')
+          fi
+          git "${ssh[@]}" submodule update --init --recursive && exit 0
+          subs=$(git config -f .gitmodules --get-regexp '^submodule[.].*[.]path$' | cut -d' ' -f2 | paste -sd, -)
+          if [ -z "$ENGINE_DEPLOY_KEY" ]; then
+            echo "::error title=Submodules::the clone of submodule $subs failed: the ENGINE_DEPLOY_KEY secret is missing. A run Dependabot started sees only Dependabot's secrets: set it there too (DEPENDABOT=ENGINE_DEPLOY_KEY mise run secrets -- .env)."
+          else
+            echo "::error title=Submodules::the clone of submodule $subs failed with ENGINE_DEPLOY_KEY: is it a deploy key of the submodule's repository?"
+          fi
+          exit 1
+      - uses: ./.github/actions/setup
+        with:
+          toolchains: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].toolchains }}
+          apt: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].apt }}
+          cache: ${{ (github.event.inputs.flush_cache == 'true' || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) && 'false' || 'true' }}
+          part: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].part }}
+          docker: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].docker }}
+          flyctl: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].flyctl }}
+          node: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].node }}
+          none: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].kind == 'verdicts' }}
+      - name: Prepare
+        env:
+          LANG_NAME: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].lang }}
+          BROWSER: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].browser }}
+          PULL: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].pull }}
+          APT: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].apt }}
+        run: if [ "$KIND" = verdicts ]; then true; else bun node_modules/@tools/core/src/cli.ts ci prepare --kind "$KIND" --job "$JOB"; fi
+      - name: Run
+        env:
+          ENGINE: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].engine }}
+          VARIANT: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].variant }}
+          PART: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].part }}
+          PART_ENV: ${{ join(fromJSON(needs.plan.outputs.run_by)[matrix.name].env, fromJSON('"\n"')) }}
+          TOOLS_RUNNER: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].runner }}
+          TOOLS_GITHUB_TOKEN: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].kind != 'build' && fromJSON(needs.plan.outputs.run_by)[matrix.name].awaits && needs.plan.outputs.binaries_names != '[]' && github.token || '' }}
+          SHA: ${{ (needs.plan.outputs.released == 'false' || (github.event.inputs.flush_cache == 'true' || contains(join(github.event.commits.*.message, ' '), '[flush-cache]'))) && github.sha || '' }}
+        run: "if [ \"$KIND\" = verdicts ]; then echo 'ci: nothing to run: every cell passed before on the same inputs (the plan job lists each)'; else bun node_modules/@tools/core/src/cli.ts ci run --kind \"$KIND\" --job \"$JOB\"; fi"
+      - name: Finish
+        if: ${{ always() }}
+        env:
+          LANG_NAME: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].lang }}
+          COLLECT: ${{ toJSON(fromJSON(needs.plan.outputs.run_by)[matrix.name].collect) }}
+          JOB_STATUS: ${{ job.status }}
+        run: if [ "$KIND" = verdicts ]; then true; else bun node_modules/@tools/core/src/cli.ts ci finish --kind "$KIND" --job "$JOB"; fi
+      - name: Upload what the result reads
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: collect-${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].id }}
+          path: .tools/collect-${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].id }}.tar
+          if-no-files-found: ignore
+          retention-days: 1
+      - name: Upload what the release publishes
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: publish-${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].id }}
+          path: ${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].kind == 'package' && 'target/publish/' || '.tools/nothing-to-publish' }}
+          if-no-files-found: ignore
+          retention-days: 1
+      - name: Upload the crash's bundle
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: debug-${{ fromJSON(needs.plan.outputs.run_by)[matrix.name].id }}
+          path: .tools/debug/
+          if-no-files-found: ignore
+
+  result:
+    needs: [plan, run]
+    if: ${{ always() }}
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      actions: write
+    env:
+      TOOLS_CACHE_URL: https://cache.l3.ai
+      TOOLS_CACHE_BUCKET: ""
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TOOLS_WHEN: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && 'main') || 'push' }}
+      TOOLS_VERDICTS: ${{ (github.event.inputs.flush_cache == 'true' || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) && '0' || '1' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+        with:
+          toolchains: ${{ needs.plan.outputs.later_toolchains || 'bun' }}
+          cache: ${{ (github.event.inputs.flush_cache == 'true' || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) && 'false' || 'true' }}
+          full: ${{ needs.plan.outputs.later != '[]' && 'true' || 'false' }}
+      - name: Download what the result reads
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        env:
+          NODE_OPTIONS: "--disable-warning=DEP0005"
+        with:
+          pattern: collect-*
+          path: .tools/collect/
+          merge-multiple: true
+      - name: Prepare
+        run: bun node_modules/@tools/core/src/cli.ts ci prepare --kind result --job result
+      - name: Result
+        env:
+          RESULTS: ${{ needs.plan.result }} ${{ needs.run.result }}
+          LATER: ${{ needs.plan.outputs.later }}
+          SHIP: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && needs.plan.outputs.ship || '' }}
+          VERSION: ${{ needs.plan.outputs.version }}
+          PARTS_NAMES: ${{ needs.plan.outputs.parts_names }}
+          PARTS_BY: ${{ needs.plan.outputs.parts_by }}
+          SMOKE_NAMES: ${{ needs.plan.outputs.smoke_names }}
+          SMOKE_BY: ${{ needs.plan.outputs.smoke_by }}
+          GH_TOKEN: ${{ github.token }}
+        run: bun node_modules/@tools/core/src/cli.ts ci result
+      - name: Finish
+        if: ${{ always() }}
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: bun node_modules/@tools/core/src/cli.ts ci finish --kind result --job result
+      - name: Upload the crash's bundle
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: debug-result
+          path: .tools/debug/
+          if-no-files-found: ignore

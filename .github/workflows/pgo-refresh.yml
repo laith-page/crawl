@@ -1,0 +1,32 @@
+# Written by tools from project.ts (jobs.pgo:refresh): `mise run jobs` rewrites it, and the gate fails while it differs.
+name: "pgo:refresh"
+on:
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch: {}
+concurrency:
+  group: pgo-refresh
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  run:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+      - name: Set up, without the git hooks
+        run: |
+          mise run setup
+          git config --local --unset-all core.hooksPath || [ $? = 5 ]
+      - name: "pgo-refresh"
+        id: task
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          mise run 'pgo-refresh'

@@ -1,0 +1,15 @@
+flowchart TD
+  A["Create Workers"] --> B{"Signal received or host dead?"}
+  B -->|No| C{"Idle worker and frontier URL?"}
+  C -->|Yes| D["frontier.pop → workers.submit"] --> C
+  C -->|No| E{"In flight = 0?"}
+  B -->|Yes| E
+  E -->|No| F["workers.take → Page"]
+  F --> G["tracker.record → out.write"]
+  G --> H{"Output failed?"}
+  H -->|Yes| I["Flush and summarize"]
+  H -->|No| J{"Dispatch still active?"}
+  J -->|Yes| K["frontier.push each link"] --> B
+  J -->|No| B
+  E -->|Yes| I
+  I --> L["Choose exit code"]

@@ -1,0 +1,13 @@
+{"url":"http://localhost:8080/relative/","status":200,"error":null}
+{"url":"http://localhost:8080/relative/child","status":200,"error":null}
+{"url":"http://localhost:8080/relative/child2","status":200,"error":null}
+{"url":"http://localhost:8080/up","status":200,"error":null}
+{"url":"http://localhost:8080/abs","status":200,"error":null}
+{"url":"http://localhost:8080/relative/?q=1","status":200,"error":null}
+{"url":"http://localhost:8080/scheme-relative","status":200,"error":null}
+{"url":"http://localhost:8080/relative/dir/page","status":200,"error":null}
+{"url":"http://localhost:8080/relative/base-page","status":200,"error":null}
+{"url":"http://localhost:8080/relative/dot","status":200,"error":null}
+{"url":"http://localhost:8080/relative/dir/subchild","status":200,"error":null}
+{"url":"http://localhost:8080/relative/sibling","status":200,"error":null}
+{"url":"http://localhost:8080/relative/target","status":200,"error":null}

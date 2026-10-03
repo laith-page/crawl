@@ -1,0 +1,4 @@
+# Written by tools (mise run dockerfile): the image is built from pom.xml and its sources alone.
+*
+!pom.xml
+!src

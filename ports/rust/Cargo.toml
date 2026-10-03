@@ -1,0 +1,50 @@
+# its own root: cargo must not look above ports/
+[workspace]
+
+[package]
+name = "crawler"
+version = "0.3.17"
+edition = "2024"
+description = "Prints every page of one host, breadth-first, with its status or error"
+license = "MIT"
+publish = false
+
+[dependencies]
+cli = { version = "0.2.6", registry = "l3" }
+collections = { version = "0.2.5", registry = "l3" }
+workers = { version = "0.1.1", registry = "l3" }
+tokio = { version = "1.53", features = ["rt-multi-thread", "time", "sync"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls-no-provider", "gzip", "deflate"] }
+# the TLS provider reqwest takes: ring, configured by tls.rs around certs
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+html = { version = "0.2.6", registry = "l3" }
+signals = { version = "0.2.1", registry = "l3" }
+fastrand = "2.5"
+libc = "0.2"
+# a page's links in document order, deduped (links.rs)
+indexmap = "2.14"
+# only to read the kind of an error reqwest passes up from it; the version reqwest pulls in
+hyper = { version = "1", default-features = false }
+# the trust store (tls.rs): read at the first https handshake, a CA decoded when a chain names it, and the
+# platform's verifier where there is no system bundle: the version reqwest pulls in
+certs = { version = "0.2.1", registry = "l3" }
+# the URL Standard's parser, reqwest's too: the version reqwest pulls in, so the patch below serves both
+url = "2.5.16"
+foldhash = "0.2"
+# a layer over reqwest's connector that counts the connects in flight (http.rs): the version reqwest pulls in
+tower = { version = "0.5", default-features = false, features = ["util"] }
+
+[dev-dependencies]
+tokio = { version = "1.53", features = ["macros"] }
+
+# url: rust-url main with two WPT fixes (///host against a special base, invalid Punycode in an ASCII host) and a
+# simple path joined without the parser, published as crates.l3.ai's url 2.5.16 (laith-page/libs, whatwg-url/rust)
+[patch.crates-io]
+url = { version = "2.5.16", registry = "l3" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true

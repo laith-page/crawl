@@ -1,0 +1,31 @@
+{
+  "mock/crawlme.warc.gz": {
+    "sha256": "814ebcc4b319748421894ebc09d5dce17043eeac85b907cf991074681fed5c15",
+    "size": 13273885,
+    "url": "https://warc.l3.ai/crawlme.warc.gz",
+    "generate": "bun node_modules/@tools/core/src/cli.ts warc wget"
+  },
+  "mock/wikipedia.warc.gz": {
+    "sha256": "89f49eef7dd18163ce696e593a8b0ec643919d73bd11788ec74a2cb9995963ce",
+    "size": 86676156,
+    "url": "https://warc.l3.ai/wikipedia.warc.gz",
+    "generate": "bun node_modules/@tools/core/src/cli.ts warc kiwix"
+  },
+  "e2e/expected/crawlme.ndjson.zst": {
+    "sha256": "9fa10133725b7151988a836be9900e4b77544cd6123677900c36b3acc03a9fbe",
+    "size": 700437,
+    "url": "https://cache.l3.ai/crawlme-expected.ndjson.zst"
+  },
+  "crawler.iprof": {
+    "sha256": "6f249bac41547f6d5bbeffd3993b8600a1dc98cf3ea356ccaf9192bd7856c59c",
+    "size": 6573112,
+    "url": "https://cache.l3.ai/crawler.iprof",
+    "generate": "bun node_modules/@tools/core/src/cli.ts pgo refresh --graalvm"
+  },
+  "mock/intl.json": {
+    "sha256": "2de65d182692aee374371b3b1c9fa5da1918c90eb1142e8597fb1ec271f04635",
+    "size": 900781,
+    "url": "https://cache.l3.ai/mock-intl.json",
+    "generate": "bun scripts/intl.gen.ts"
+  }
+}

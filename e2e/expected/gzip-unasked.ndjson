@@ -1,0 +1,2 @@
+{"url":"http://localhost:8080/gzip/","status":200,"error":null}
+{"url":"http://localhost:8080/gzip/leak","status":200,"error":null}

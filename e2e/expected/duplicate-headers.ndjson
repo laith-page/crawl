@@ -1,0 +1,5 @@
+{"url":"http://localhost:8080/dup/","status":200,"error":null}
+{"url":"http://localhost:8080/dup/type","status":200,"error":null}
+{"url":"http://localhost:8080/dup/moved","status":302,"error":null}
+{"url":"http://localhost:8080/dup/from-type","status":200,"error":null}
+{"url":"http://localhost:8080/dup/first","status":200,"error":null}

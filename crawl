@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Run a crawler: `./crawl [java|go|rust|zig] [options] [URL]` (tools' `run`: built first if stale; no URL crawls the mock).
+set -euo pipefail
+cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+# A fresh clone, or a pull that moved bun.lock (the tools pin among it): set up first, as mise's enter hook does.
+cmp -s bun.lock node_modules/.setup.lock 2>/dev/null || { mise run setup >&2 && cp bun.lock node_modules/.setup.lock; }
+exec mise exec -- bun node_modules/@tools/core/src/cli.ts run "$@"

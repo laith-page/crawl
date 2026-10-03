@@ -1,0 +1,114 @@
+{
+  "routes": {
+    "/": {
+      "html": "<!DOCTYPE html><html><body><a href=\"/wiki/Main_Page\">Wikipedia</a></body></html>"
+    },
+    "*": {
+      "archive": "wikipedia.warc.gz"
+    }
+  },
+  "scenarios": {
+    "latency": [
+      {
+        "name": "fastly_wikipedia_network",
+        "delay": {
+          "quantiles": [
+            [0.0, "15.0ms"],
+            [0.5, "28.5ms"],
+            [0.85, "42.0ms"],
+            [0.9, "95.0ms"],
+            [0.95, "180.0ms"],
+            [0.99, "320.0ms"],
+            [1.0, "550.0ms"]
+          ],
+          "connect": ["30ms", "45ms"]
+        }
+      }
+    ],
+    "realworld": [
+      {
+        "name": "fastly_wikipedia_network",
+        "delay": {
+          "quantiles": [
+            [0.0, "15.0ms"],
+            [0.5, "28.5ms"],
+            [0.85, "42.0ms"],
+            [0.9, "95.0ms"],
+            [0.95, "180.0ms"],
+            [0.99, "320.0ms"],
+            [1.0, "550.0ms"]
+          ],
+          "connect": ["30ms", "45ms"]
+        }
+      },
+      {
+        "name": "wikipedia_rate_limit_429",
+        "match": "/wiki/*",
+        "rate": 0.01,
+        "times": 1,
+        "bend": {
+          "status": 429,
+          "headers": {
+            "retry-after": "1",
+            "server": "mw-fastly",
+            "x-cache": "CP-miss, INT-miss"
+          }
+        }
+      },
+      {
+        "name": "wikipedia_rate_limit_burst_429",
+        "match": "/wiki/*",
+        "rate": 0.003,
+        "times": 2,
+        "bend": {
+          "status": 429,
+          "headers": {
+            "retry-after": "2",
+            "server": "mw-fastly",
+            "x-cache": "CP-miss, INT-miss"
+          }
+        }
+      },
+      {
+        "name": "mediawiki_backend_overload_503",
+        "match": "/wiki/*",
+        "rate": 0.002,
+        "times": 1,
+        "bend": {
+          "status": 503,
+          "headers": {
+            "retry-after": "1",
+            "server": "mw-backend"
+          }
+        }
+      },
+      {
+        "name": "fastly_gateway_timeout_504",
+        "match": "/wiki/*",
+        "rate": 0.001,
+        "times": 1,
+        "bend": {
+          "status": 504,
+          "headers": {
+            "server": "varnish"
+          }
+        }
+      },
+      {
+        "name": "slow_dynamic_article_tail_latency",
+        "match": "/wiki/*",
+        "rate": 0.01,
+        "delay": ["800ms", "2000ms"]
+      },
+      {
+        "name": "intermittent_tcp_drop",
+        "match": "/wiki/*",
+        "rate": 0.0005,
+        "times": 1,
+        "answer": {
+          "raw": [""]
+        }
+      }
+    ]
+  }
+}

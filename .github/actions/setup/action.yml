@@ -1,0 +1,145 @@
+name: setup
+description: "mise toolchains (only those named, cached per set), apt packages from cached .debs, the project's node_modules"
+inputs:
+  toolchains:
+    description: "Space-separated mise tools to install (`bun go`), or `all`"
+    default: "all"
+  apt:
+    description: "Space-separated Debian packages, installed from a cache of their .debs"
+    default: ""
+  cache:
+    description: "`false`: a cold run (`[flush-cache]`): the toolchains restored only as pinned (exact key, no older set), the apt .debs as cached. Both are downloads of pinned third-party versions, not builds of ours: a cold run measures the builds and tests, not a mirror (zig's once took 18 min at 50 kB/s, valgrind's 5)"
+    default: "true"
+  part:
+    description: "A release part this job runs (`image-arm64`, `image-manifest`, `deploy`): what its builders depend on"
+    default: ""
+  docker:
+    description: "`true`: the image's builders (qemu for a whole image, buildx) and the registry login"
+    default: "false"
+  flyctl:
+    description: "Kept for callers: flyctl is the `builders` action's, which a release's part job runs"
+    default: "false"
+  node:
+    description: "Kept for callers: Node 22 is the `builders` action's, which a release's part job runs"
+    default: "false"
+  none:
+    description: "`true`: nothing to set up (the gate's entry that says nothing has work): every step is a no-op, none shown as skipped"
+    default: "false"
+  full:
+    description: "`false`: only the dependencies (`bun install --frozen-lockfile`), not the project's whole `mise run setup` (host setup, fixtures): for the plan and agree jobs"
+    default: "true"
+runs:
+  using: composite
+  steps:
+    - id: key
+      if: inputs.none != 'true'
+      shell: bash
+      env:
+        TOOLCHAINS: ${{ inputs.toolchains }}
+      run: |
+        set -euo pipefail
+        slug=$(echo "$TOOLCHAINS" | tr ' :/' '---')
+        echo "slug=$slug" >> "$GITHUB_OUTPUT"
+        if [ "$TOOLCHAINS" = all ] && [ "$RUNNER_OS" = macOS ]; then
+          # A Mac's rust is rustup's (~/.rustup), outside mise's installs: uncached, every Mac job synced its channel
+          # and fetched clippy again (7 s of a two-minute job).
+          { echo "paths<<EOF"; echo "$HOME/.local/share/mise/installs"; echo "$HOME/.rustup/toolchains"; echo "$HOME/.cargo/bin"
+            echo EOF; } >> "$GITHUB_OUTPUT"
+        elif [ "$TOOLCHAINS" = all ]; then
+          echo "paths=$HOME/.local/share/mise/installs" >> "$GITHUB_OUTPUT"
+        else
+          { echo "paths<<EOF"; for t in $TOOLCHAINS; do echo "$HOME/.local/share/mise/installs/${t//:/-}"; done
+            case " $TOOLCHAINS " in *" rust "*) echo "$HOME/.rustup/toolchains"; echo "$HOME/.cargo/bin";; esac
+            echo EOF; } >> "$GITHUB_OUTPUT"
+        fi
+    - id: toolchain-cache
+      if: inputs.none != 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.key.outputs.paths }}
+        # `toolchains-`, not the `mise-` of the caches that held tools' pins too: restored, `mise reshim` put a shim of
+        # every pin on PATH again. The pins are their own cache (below).
+        key: toolchains-${{ runner.os }}-${{ runner.arch }}-${{ steps.key.outputs.slug }}-${{ hashFiles('**/mise.toml', '.config/mise/conf.d/*.toml', '**/rust-toolchain.toml') }}
+        restore-keys: ${{ inputs.cache != 'false' && format('toolchains-{0}-{1}-{2}-', runner.os, runner.arch, steps.key.outputs.slug) || '' }}
+    # mise itself pinned: a release a day old once served no linux-arm64 archive, and every arm job failed to start.
+    - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+      if: inputs.none != 'true'
+      with:
+        version: 2026.10.0
+        cache: false
+        install: false
+    - name: Install toolchains
+      if: inputs.none != 'true'
+      shell: bash
+      env:
+        TOOLCHAINS: ${{ inputs.toolchains }}
+        MISE_AUTO_INSTALL: "false"
+        RETRY_SECONDS: "10"
+      # Three tries: one HTTP 500 from a toolchain's mirror failed crawler's `build zig checked` in its setup, and its
+      # waiters sat out their time. What a try installed stays; the next fetches the rest.
+      run: |
+        for try in 1 2 3; do
+          if [ "$TOOLCHAINS" = all ]; then mise install && break; else mise install $TOOLCHAINS && break; fi
+          [ "$try" = 3 ] && exit 1
+          echo "mise install failed (try $try of 3): again in $((try * RETRY_SECONDS)) s"
+          sleep $((try * RETRY_SECONDS))
+        done
+        mise reshim
+    # GNU tar on a Mac, for the reproducible archives (macOS's own is bsdtar).
+    - if: inputs.none != 'true' && (runner.os == 'macOS')
+      shell: bash
+      run: command -v gtar >/dev/null || brew install gnu-tar
+    # A package's image builders, in shell: no action of theirs to download in every job that needs none. A whole
+    # multi-platform image emulates its other platform; an image-<arch> part builds on its own architecture's runner.
+    - if: inputs.none != 'true' && (inputs.docker == 'true' && !startsWith(inputs.part, 'image-'))
+      shell: bash
+      run: docker run --privileged --rm tonistiigi/binfmt:qemu-v10.2.3@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0 --install arm64
+    - if: inputs.none != 'true' && (inputs.docker == 'true' && inputs.part != 'image-manifest')
+      shell: bash
+      run: docker buildx create --use --name tools --driver docker-container >/dev/null 2>&1 || docker buildx use tools
+    - if: inputs.none != 'true' && (inputs.docker == 'true' && env.DOCKERHUB_TOKEN != '')
+      shell: bash
+      run: printf '%s' "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin >/dev/null
+    - if: inputs.none != 'true' && (inputs.apt != '')
+      id: apt
+      shell: bash
+      env:
+        APT: ${{ inputs.apt }}
+      run: echo "slug=$(echo "$APT" | tr ' ' '-')-$(. /etc/os-release && echo "$VERSION_ID")" >> "$GITHUB_OUTPUT"
+    - if: inputs.none != 'true' && (inputs.apt != '')
+      id: apt-cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/tools/debs
+        key: apt-${{ runner.os }}-${{ runner.arch }}-${{ steps.apt.outputs.slug }}
+    - if: inputs.none != 'true' && (inputs.apt != '')
+      shell: bash
+      env:
+        APT: ${{ inputs.apt }}
+        HIT: ${{ steps.apt-cache.outputs.cache-hit }}
+      run: |
+        set -euo pipefail
+        dir="$HOME/.cache/tools/debs"
+        if [ "$HIT" != true ] || ! ls "$dir"/*.deb >/dev/null 2>&1; then
+          sudo apt-get update -qq >/dev/null
+          sudo apt-get clean
+          sudo apt-get install -y -qq --download-only --no-install-recommends $APT >/dev/null
+          mkdir -p "$dir" && sudo cp /var/cache/apt/archives/*.deb "$dir"/ && sudo chown -R "$USER" "$dir"
+        fi
+        sudo dpkg -i "$dir"/*.deb >/dev/null
+    - shell: bash
+      if: inputs.none != 'true'
+      env:
+        MISE_AUTO_INSTALL: "false"
+        MISE_TASK_RUN_AUTO_INSTALL: "false"
+        FULL: ${{ inputs.full }}
+      run: if [ "$FULL" = false ]; then bun install --frozen-lockfile; else mise run setup; fi
+    # Tools' pins (toolchains.json: uv, ruff, trivy, shfmt...), in a mise data directory of their own that nothing shims
+    # (@tools/core's pins.ts): a stage calls each by its absolute path. Cached by the pins, after the setup that brings
+    # them; a job installs only the pins its stages run.
+    - if: inputs.none != 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.local/share/tools/mise/installs
+        key: tools-pins-${{ runner.os }}-${{ runner.arch }}-${{ steps.key.outputs.slug }}-${{ hashFiles('node_modules/@tools/core/toolchains.json', 'packages/core/toolchains.json') }}
+        restore-keys: ${{ inputs.cache != 'false' && format('tools-pins-{0}-{1}-{2}-', runner.os, runner.arch, steps.key.outputs.slug) || '' }}

@@ -1,0 +1,44 @@
+# Dependabot's patch and minor updates merged once ci is green; a major waits for a person.
+name: automerge
+on:
+  # zizmor: ignore[dangerous-triggers] -- nothing from the pull request is checked out or run: API calls only.
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+permissions: {}
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - name: Merge a green patch or minor update, then run ci on the default branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+          pr=$(gh api "repos/$REPO/pulls?state=open&head=${REPO%%/*}:$HEAD_BRANCH" -q '.[0].number // empty')
+          if [ -z "$pr" ]; then echo "no open pull request from $HEAD_BRANCH"; exit 0; fi
+          author=$(gh api "repos/$REPO/pulls/$pr" -q .user.login)
+          head=$(gh api "repos/$REPO/pulls/$pr" -q .head.sha)
+          if [ "$author" != "dependabot[bot]" ]; then echo "#$pr is $author's, not Dependabot's: left alone"; exit 0; fi
+          if [ "$head" != "$HEAD_SHA" ]; then echo "#$pr moved on since the run that passed: its next run decides"; exit 0; fi
+          types=$(gh api "repos/$REPO/commits/$head" -q .commit.message | sed -n 's/.*update-type: version-update:semver-\([a-z]*).*/\1/p' | sort -u)
+          if [ -z "$types" ]; then echo "#$pr names no update type: left for a person"; exit 0; fi
+          if printf '%s\n' "$types" | grep -qvx -e patch -e minor; then
+            echo "#$pr carries a $(printf '%s\n' "$types" | grep -vx -e patch -e minor | head -1) update: left for a person"
+            exit 0
+          fi
+          gh pr merge "$pr" -R "$REPO" --squash --delete-branch
+          base=$(gh api "repos/$REPO" -q .default_branch)
+          gh workflow run ci.yml -R "$REPO" --ref "$base"
+          echo "#$pr merged ($(printf '%s' "$types" | tr '\n' ' ')); ci dispatched on $base"

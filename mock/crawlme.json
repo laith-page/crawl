@@ -1,0 +1,25 @@
+{
+  "routes": {
+    "*": {
+      "archive": "crawlme.warc.gz"
+    }
+  },
+  "scenarios": {
+    "latency": [
+      {
+        "name": "network",
+        "delay": {
+          "quantiles": [
+            [0, "19.4ms"],
+            [0.5, "80.3ms"],
+            [0.9, "93.7ms"],
+            [0.95, "99.7ms"],
+            [0.99, "126.3ms"],
+            [1, "211.9ms"]
+          ],
+          "connect": ["55ms", "65ms"]
+        }
+      }
+    ]
+  }
+}

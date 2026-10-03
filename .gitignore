@@ -1,0 +1,47 @@
+# Build outputs. Every engine builds under its own directory. Anchor root paths with a leading slash: a bare `crawler` would also
+# ignore every new file under src/main/java/crawler/ and ports/go/crawler/.
+/target/
+ports/rust/target/
+ports/rust/version.txt
+ports/go/crawler/version_gen.go
+ports/zig/zig-out/
+ports/zig/.zig-cache/
+ports/zig/zig-pkg/
+# `go build` run inside ports/go/crawler names its binary after the module
+/ports/go/crawler/crawler
+# what an editor's go build, or one run inside ports/go, writes
+/ports/go/bin/
+
+# What tools writes: builds, logs, daemons, bench reports
+/.tools/
+/.ci/
+*.log
+.zig-cache/
+go.prof
+profile.jfr
+profile1m.jfr
+mock/realworld.json
+
+# Agent worktrees and per-developer settings
+.claude/
+
+# Editor & OS
+.DS_Store
+.idea/
+*.iml
+.vscode/
+
+# Node/Bun
+node_modules/
+__pycache__/
+.ruff_cache/
+.wrangler/
+test-results/
+playwright-report/
+
+# Large fixtures and profiles (downloaded on demand from https://warc.l3.ai and https://cache.l3.ai)
+mock/*.warc.gz
+mock/intl.json
+/crawler.iprof
+e2e/expected/crawlme.ndjson.zst
+ports/zig/.tools-checked.build.zig
