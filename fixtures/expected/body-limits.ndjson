@@ -1,0 +1,8 @@
+{"url":"http://localhost:8080/body/","status":200,"error":null}
+{"url":"http://localhost:8080/body/exact","status":200,"error":null}
+{"url":"http://localhost:8080/body/over-by-one","status":200,"error":"body over 5 MiB"}
+{"url":"http://localhost:8080/body/oversize","status":200,"error":"body over 5 MiB"}
+{"url":"http://localhost:8080/body/chunked-over","status":200,"error":"body over 5 MiB"}
+{"url":"http://localhost:8080/body/declared-over","status":200,"error":"body over 5 MiB"}
+{"url":"http://localhost:8080/body/cut-short","status":200,"error":"connection reset"}
+{"url":"http://localhost:8080/body/leaf","status":200,"error":null}

@@ -1,0 +1,13 @@
+flowchart TD
+  A["HTTP/1.1 GET"] --> B{"Response status"}
+  B -->|Retryable| C["Discard at most 64 KiB; return retry result"]
+  B -->|3xx| D["Read first Location as ISO-8859-1; discard body"]
+  B -->|2xx HTML except 204| E["Decode gzip/deflate, stream body"]
+  B -->|Other| F["Discard at most 64 KiB"]
+  E --> G{"Decoded body > 5 MiB?"}
+  G -->|Yes| H["body over 5 MiB"]
+  G -->|No| I["Feed chunks to Links scanner"]
+  I --> J["Page with links"]
+  D --> K["Resolve Location; Page with zero or one link"]
+  F --> L["Page without links"]
+  C --> M["Fetcher decides retry"]

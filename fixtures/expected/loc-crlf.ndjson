@@ -1,0 +1,2 @@
+{"url":"http://localhost:8080/stress/loc-crlf","status":302,"error":null}
+{"url":"http://localhost:8080/stress/a","status":200,"error":null}

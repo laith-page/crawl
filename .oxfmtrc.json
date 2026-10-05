@@ -1,0 +1,17 @@
+// Written by tools, do not edit: `l3 fix` rewrites this file
+{
+  "printWidth": 120,
+  "ignorePatterns": [
+    "node_modules",
+    ".tools",
+    "target",
+    "**/*.md",
+    "**/*.yml",
+    "**/*.yaml",
+    "**/*.json",
+    "**/*.toml",
+    "docs",
+    "fixtures/expected",
+    "fixtures/urls.json"
+  ]
+}

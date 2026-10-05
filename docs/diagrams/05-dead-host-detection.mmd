@@ -1,0 +1,14 @@
+flowchart TD
+  A["Completed Page"] --> B["Tracker records page and error"]
+  B --> C{"Start URL failed or status >= 400?"}
+  C -->|Yes| D["Remember start failure"]
+  C -->|No| E{"Connect or DNS failure?"}
+  D --> E
+  E -->|Yes| F["Consecutive unreachable + 1"]
+  E -->|No| G["Reset consecutive count"]
+  F --> H{"Count >= 5?"}
+  H -->|No| I["Continue"]
+  H -->|Yes| J["Stop new dispatches"]
+  J --> K["Drain in-flight fetches"]
+  K --> L["error: host unreachable; summary; exit 1"]
+  G --> I

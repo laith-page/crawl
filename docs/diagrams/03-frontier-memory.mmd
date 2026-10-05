@@ -1,0 +1,13 @@
+flowchart TD
+  A["Start URL inserted into queue + seen"] --> B["pop: FIFO, increment dispatched"]
+  C["push(link)"] --> D{"Page budget available?"}
+  D -->|No| X["Drop, leave unseen"]
+  D -->|Yes| E{"Same host?"}
+  E -->|No| Y["Drop"]
+  E -->|Yes| F["Hash canonical URL"]
+  F --> G{"Already seen or table full?"}
+  G -->|Yes| Y
+  G -->|No| H{"Packed queue accepts within 128 MiB?"}
+  H -->|No| X
+  H -->|Yes| I["Insert hash; URL queued"]
+  I --> B

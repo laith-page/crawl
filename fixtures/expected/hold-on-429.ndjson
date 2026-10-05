@@ -1,0 +1,6 @@
+{"url":"http://localhost:8080/timing/hold/","status":200,"error":null}
+{"url":"http://localhost:8080/timing/hold/a","status":200,"error":null}
+{"url":"http://localhost:8080/timing/hold/b","status":200,"error":null}
+{"url":"http://localhost:8080/timing/hold/h","status":200,"error":null}
+{"url":"http://localhost:8080/timing/hold/c","status":200,"error":null}
+{"url":"http://localhost:8080/timing/hold/got?held=yes","status":200,"error":null}

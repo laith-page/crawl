@@ -1,0 +1,4 @@
+{"url":"http://localhost:8080/duplicates/","status":200,"error":null}
+{"url":"http://localhost:8080/duplicates/one","status":200,"error":null}
+{"url":"http://localhost:8080/duplicates/two","status":200,"error":null}
+{"url":"http://localhost:8080/duplicates/three","status":200,"error":null}

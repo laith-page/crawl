@@ -1,0 +1,2 @@
+# What zig build fetches the dependencies into.
+/zig-pkg/

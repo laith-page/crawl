@@ -1,0 +1,3 @@
+{"url":"http://localhost:8080/dir-index/","status":200,"error":null}
+{"url":"http://localhost:8080/dir-index/index.html","status":200,"error":null}
+{"url":"http://localhost:8080/dir-index/page","status":200,"error":null}

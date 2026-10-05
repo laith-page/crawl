@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Run a crawler: `./crawl [java|go|rust|zig] [options] [URL]`. Built first when stale; no URL crawls the local
+# recording of crawlme.fly.dev (project.ts `dev`).
+set -euo pipefail
+cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+# A fresh clone, or a pull that moved bun.lock: set up first, as the git hooks do.
+cmp -s bun.lock node_modules/.setup.lock 2>/dev/null || mise run setup >&2
+exec mise exec -- bunx l3 dev "$@"

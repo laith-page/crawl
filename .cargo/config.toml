@@ -1,0 +1,7 @@
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+
+# The Rust port's libraries, github.com/laith-page/libs: certs, cli, collections, html, and the url fork.
+# Here, not in ports/rust/: cargo reads config from where it is run, and the gate runs it from this root.
+[registries.l3]
+index = "sparse+https://crates.l3.ai/index/"

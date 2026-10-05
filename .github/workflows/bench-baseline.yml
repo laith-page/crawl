@@ -1,0 +1,142 @@
+# Written by tools, do not edit: `l3 fix` rewrites this file
+name: bench-baseline
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: bench-baseline
+  cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
+jobs:
+  baseline:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - id: mirror
+        name: mise through the mirror
+        env:
+          MISE_VERSION: 2026.10.0
+          MIRROR: https://cache.l3.ai/mirror
+          MISE_SHA256_LINUX_X64: 57ced973f968b8fbab07aa8e32bd7077d4a357e200a22356d98963c723c6de0a
+          MISE_SHA256_LINUX_ARM64: 4b8cacffac83e8493fc5d1eef25f6365edba73ccbed5a1f3987b7cb3f5079656
+          MISE_SHA256_MACOS_ARM64: 8d2007efdae0c2b64e3955257533e6ec17197bc2fdcbc5dd8f6847f92881deea
+        run: |
+          set -uo pipefail
+          case "$RUNNER_OS-$RUNNER_ARCH" in
+            Linux-X64) target=linux-x64 want=$MISE_SHA256_LINUX_X64;;
+            Linux-ARM64) target=linux-arm64 want=$MISE_SHA256_LINUX_ARM64;;
+            macOS-ARM64) target=macos-arm64 want=$MISE_SHA256_MACOS_ARM64;;
+            *) exit 0;;
+          esac
+          [ -f /etc/alpine-release ] && exit 0
+          dir="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/bin"
+          mkdir -p "$dir"
+          asset="v$MISE_VERSION/mise-v$MISE_VERSION-$target"
+          for url in "$MIRROR/github.com/jdx/mise/releases/download/$asset" "https://github.com/jdx/mise/releases/download/$asset"; do
+            if curl -fsSL --retry 2 --retry-all-errors --connect-timeout 10 -o "$dir/mise.download" "$url" &&
+              [ "$( (sha256sum "$dir/mise.download" 2>/dev/null || shasum -a 256 "$dir/mise.download") | cut -d' ' -f1)" = "$want" ]; then
+              chmod +x "$dir/mise.download" && mv "$dir/mise.download" "$dir/mise"
+              echo "sha256=$want" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::notice::mise $MISE_VERSION not fetched from $url; the next source"
+          done
+          rm -f "$dir/mise.download"
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+        env:
+          MISE_URL_REPLACEMENTS: "{\"regex:^https://github\\\\.com(/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/download/[^/]*[0-9][^/]*/[^/]+)$\":\"https://cache.l3.ai/mirror/github.com$1\",\"regex:^https://dl\\\\.google\\\\.com(/go/go[0-9][^/]*)$\":\"https://cache.l3.ai/mirror/dl.google.com$1\",\"regex:^https://ziglang\\\\.org(/download/[0-9]+\\\\.[0-9]+\\\\.[0-9]+/[^/]+)$\":\"https://cache.l3.ai/mirror/ziglang.org$1\",\"regex:^https://download\\\\.java\\\\.net(/java/GA/jdk[0-9][^/]*/[^?]+)$\":\"https://cache.l3.ai/mirror/download.java.net$1\"}"
+        with:
+          version: 2026.10.0
+          sha256: ${{ steps.mirror.outputs.sha256 }}
+          cache: true
+      - name: Cache bun
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache go
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache cargo
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache maven
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: maven-${{ runner.os }}-${{ runner.arch }}-
+      - name: Dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: perf, strace and valgrind
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends linux-tools-common linux-tools-generic strace valgrind
+          sudo apt-get install -y -qq --no-install-recommends "linux-tools-$(uname -r)" 2>/dev/null || true
+          bin="$(find /usr/lib /usr/libexec -maxdepth 3 -type f -name perf -path '*linux-tools*' 2>/dev/null | sort -V | tail -1)"
+          if [ -n "$bin" ]; then sudo ln -sf "$bin" /usr/local/bin/perf; else echo "::notice::no perf binary on this runner: the pmu counter is off"; fi
+          [ "$(cat /proc/sys/kernel/perf_event_paranoid)" -le 2 ] || sudo sysctl -w kernel.perf_event_paranoid=2
+      - name: Bench
+        run: bunx l3 bench --update
+      - id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+      - name: The new baseline as a pull request
+        env:
+          BASELINE: bench/baseline.jsonl
+          BRANCH: tools/bench-baseline
+          RUNNER: ubuntu-26.04
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          set -euo pipefail
+          api="repos/$GITHUB_REPOSITORY"
+          main="$(gh api "$api/git/ref/heads/$GITHUB_REF_NAME" -q .object.sha)"
+          main_tree="$(gh api "$api/git/commits/$main" -q .tree.sha)"
+          blob="$(base64 -w0 -- "$BASELINE" | jq -Rs '{content: ., encoding: "base64"}' | gh api "$api/git/blobs" --input - -q .sha)"
+          tree="$(jq -n --arg base "$main_tree" --arg path "$BASELINE" --arg blob "$blob" \
+            '{base_tree: $base, tree: [{path: $path, mode: "100644", type: "blob", sha: $blob}]}' |
+            gh api "$api/git/trees" --input - -q .sha)"
+          if [ "$tree" = "$main_tree" ]; then echo "$BASELINE unchanged; nothing proposed"; exit 0; fi
+          commit="$(jq -n --arg m "Refresh the bench baseline" --arg t "$tree" --arg p "$main" '{message: $m, tree: $t, parents: [$p]}' |
+            gh api "$api/git/commits" --input - -q .sha)"
+          if gh api "$api/git/ref/heads/$BRANCH" >/dev/null 2>&1; then
+            jq -n --arg sha "$commit" '{sha: $sha, force: true}' | gh api -X PATCH "$api/git/refs/heads/$BRANCH" --input - >/dev/null
+          else
+            jq -n --arg ref "refs/heads/$BRANCH" --arg sha "$commit" '{ref: $ref, sha: $sha}' | gh api "$api/git/refs" --input - >/dev/null
+          fi
+          pr="$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number -q '.[0].number')"
+          body="\`l3 bench --update\` on $RUNNER, run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
+          if [ -z "$pr" ]; then
+            gh pr create --repo "$GITHUB_REPOSITORY" --base "$GITHUB_REF_NAME" --head "$BRANCH" --title "Refresh the bench baseline" --body "$body"
+          fi
+          gh pr merge --repo "$GITHUB_REPOSITORY" "$BRANCH" --auto --squash || echo "::notice::auto-merge is off here: merge it by hand"
+      - name: Upload results and logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: bench-baseline
+          path: |
+            .tools/results/
+            .tools/logs/
+          if-no-files-found: ignore
+          retention-days: 7

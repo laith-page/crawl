@@ -1,0 +1,8 @@
+{"url":"http://localhost:8080/dropped/","status":200,"error":null}
+{"url":"http://localhost:8080/dropped/drop-1","status":null,"error":"connection reset"}
+{"url":"http://localhost:8080/dropped/drop-2","status":null,"error":"connection reset"}
+{"url":"http://localhost:8080/dropped/drop-3","status":null,"error":"connection reset"}
+{"url":"http://localhost:8080/dropped/drop-4","status":null,"error":"connection reset"}
+{"url":"http://localhost:8080/dropped/drop-5","status":null,"error":"connection reset"}
+{"url":"http://localhost:8080/dropped/drop-6","status":null,"error":"connection reset"}
+{"url":"http://localhost:8080/dropped/end","status":200,"error":null}

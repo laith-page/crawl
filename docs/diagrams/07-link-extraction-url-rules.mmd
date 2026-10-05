@@ -1,0 +1,14 @@
+flowchart TD
+  A["Decoded HTML chunks"] --> B["Hrefs streaming scanner"]
+  B --> C["Skip comments and script/style/title/textarea contents"]
+  C --> D["First href of each a start tag"]
+  D --> E["Decode HTML character references"]
+  E --> F["WHATWG resolve against page URL"]
+  F --> G{"HTTP(S), no credentials, <= 8000 bytes?"}
+  G -->|No| X["Drop"]
+  G -->|Yes| H["Remove fragment"]
+  H --> I{"Already found?"}
+  I -->|Yes| K["Skip duplicate"]
+  I -->|No| M{"Within 1000 links / 256 KiB?"}
+  M -->|Yes| J["Append in document order"]
+  M -->|No| N["Stop extraction"]

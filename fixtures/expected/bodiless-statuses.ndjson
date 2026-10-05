@@ -1,0 +1,4 @@
+{"url":"http://localhost:8080/bodiless/","status":200,"error":null}
+{"url":"http://localhost:8080/bodiless/204","status":204,"error":null}
+{"url":"http://localhost:8080/bodiless/304","status":304,"error":null}
+{"url":"http://localhost:8080/bodiless/after","status":200,"error":null}

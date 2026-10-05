@@ -1,0 +1,17 @@
+{"url":"http://localhost:8080/form/","status":200,"error":null}
+{"url":"http://localhost:8080/form/upper","status":200,"error":null}
+{"url":"http://localhost:8080/form/scheme-relative","status":200,"error":null}
+{"url":"http://localhost:8080/form/zero-port","status":200,"error":null}
+{"url":"http://localhost:8080/form/x","status":200,"error":null}
+{"url":"http://localhost:8080/form/from-root","status":200,"error":null}
+{"url":"http://localhost:8080/","status":200,"error":null}
+{"url":"http://localhost:8080/?q=1","status":200,"error":null}
+{"url":"http://localhost:8080/form/backslashes","status":200,"error":null}
+{"url":"http://localhost:8080/form/backslash-path","status":200,"error":null}
+{"url":"http://localhost:8080/form/dir/backslash-relative","status":200,"error":null}
+{"url":"http://localhost:8080/form/dots/x","status":200,"error":null}
+{"url":"http://localhost:8080/up","status":200,"error":null}
+{"url":"http://localhost:8080/form/b/c","status":200,"error":null}
+{"url":"http://localhost:8080/form/percent-host","status":200,"error":null}
+{"url":"http://localhost:8080/form/1a:b","status":200,"error":null}
+{"url":"http://localhost:8080/form/end","status":200,"error":null}

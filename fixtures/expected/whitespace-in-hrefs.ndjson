@@ -1,0 +1,9 @@
+{"url":"http://localhost:8080/ws/","status":200,"error":null}
+{"url":"http://localhost:8080/ws/a%20b","status":200,"error":null}
+{"url":"http://localhost:8080/ws/cd","status":404,"error":null}
+{"url":"http://localhost:8080/ws/ef","status":404,"error":null}
+{"url":"http://localhost:8080/ws/gh","status":404,"error":null}
+{"url":"http://localhost:8080/ws/ijk","status":404,"error":null}
+{"url":"http://localhost:8080/ws/q?x=a%20b","status":200,"error":null}
+{"url":"http://localhost:8080/ws/redirect","status":302,"error":null}
+{"url":"http://localhost:8080/ws/l%20m","status":200,"error":null}

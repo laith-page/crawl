@@ -1,0 +1,228 @@
+{
+  "wire java": {
+    "take": 290000,
+    "tolerance": 0.08
+  },
+  "wire go": {
+    "take": 90000,
+    "tolerance": 0.08
+  },
+  "wire rust": {
+    "take": 65000,
+    "tolerance": 0.15
+  },
+  "wire zig": {
+    "take": 22000,
+    "tolerance": 0.08
+  },
+  "scan java": {
+    "take": 72000,
+    "tolerance": 0.05
+  },
+  "scan go": {
+    "take": 14300,
+    "tolerance": 0.05
+  },
+  "scan rust": {
+    "take": 15800,
+    "tolerance": 0.1
+  },
+  "scan zig": {
+    "take": 6250,
+    "tolerance": 0.05
+  },
+  "links java": {
+    "take": 14000,
+    "tolerance": 0.05
+  },
+  "links go": {
+    "take": 4000,
+    "tolerance": 0.05
+  },
+  "links rust": {
+    "take": 4000,
+    "tolerance": 0.1
+  },
+  "links zig": {
+    "take": 2500,
+    "tolerance": 0.05
+  },
+  "startup java": {
+    "take": 880000000,
+    "tolerance": 0.03,
+    "floor": 100000
+  },
+  "startup go": {
+    "take": 3680000,
+    "tolerance": 0.03,
+    "floor": 100000
+  },
+  "startup rust": {
+    "take": 3000000,
+    "tolerance": 0.03,
+    "floor": 100000
+  },
+  "startup zig": {
+    "take": 3000000,
+    "tolerance": 0.03,
+    "floor": 100000
+  },
+  "startup-tls java": {
+    "take": 3000000000,
+    "tolerance": 0.05,
+    "floor": 150000
+  },
+  "startup-tls go": {
+    "take": 10000000,
+    "tolerance": 0.05,
+    "floor": 150000
+  },
+  "startup-tls rust": {
+    "take": 6000000,
+    "tolerance": 0.1,
+    "floor": 150000
+  },
+  "startup-tls zig": {
+    "take": 30000000,
+    "tolerance": 0.05,
+    "floor": 150000
+  },
+  "tls java": {
+    "take": 680000,
+    "tolerance": 0.05
+  },
+  "tls go": {
+    "take": 34000,
+    "tolerance": 0.05
+  },
+  "tls rust": {
+    "take": 10000,
+    "tolerance": 0.2
+  },
+  "tls zig": {
+    "take": 7000,
+    "tolerance": 0.05
+  },
+  "crawlme java": {
+    "take": 460000,
+    "tolerance": 0.05
+  },
+  "crawlme go": {
+    "take": 135000,
+    "tolerance": 0.03
+  },
+  "crawlme rust": {
+    "take": 85000,
+    "tolerance": 0.06
+  },
+  "crawlme zig": {
+    "take": 42000,
+    "tolerance": 0.03
+  },
+  "syscalls java": {
+    "take": 2.8,
+    "tolerance": 0.1,
+    "floor": 0.5
+  },
+  "syscalls go": {
+    "take": 1.35,
+    "tolerance": 0.1,
+    "floor": 0.5
+  },
+  "syscalls rust": {
+    "take": 1.8,
+    "tolerance": 0.35,
+    "floor": 0.5
+  },
+  "syscalls zig": {
+    "take": 1.55,
+    "tolerance": 0.1,
+    "floor": 0.5
+  },
+  "memory java": {
+    "take": 90,
+    "tolerance": 0.5,
+    "floor": 1
+  },
+  "memory go": {
+    "take": 1.0,
+    "tolerance": 0.5,
+    "floor": 1
+  },
+  "memory rust": {
+    "take": 1.0,
+    "tolerance": 0.5,
+    "floor": 1
+  },
+  "memory zig": {
+    "take": 2.0,
+    "tolerance": 0.5,
+    "floor": 1
+  },
+  "faults java": {
+    "take": 2.2,
+    "tolerance": 0.5,
+    "floor": 1.0
+  },
+  "faults go": {
+    "take": 0.35,
+    "tolerance": 0.2,
+    "floor": 1.0
+  },
+  "faults rust": {
+    "take": 0.26,
+    "tolerance": 0.2,
+    "floor": 1.0
+  },
+  "faults zig": {
+    "take": 1.1,
+    "tolerance": 0.2,
+    "floor": 1.0
+  },
+  "connections java": {
+    "take": 4.8,
+    "tolerance": 0.3,
+    "floor": 10
+  },
+  "connections go": {
+    "take": 4.8,
+    "tolerance": 0.3,
+    "floor": 10
+  },
+  "connections rust": {
+    "take": 10,
+    "tolerance": 2.0,
+    "floor": 10
+  },
+  "connections zig": {
+    "take": 4.8,
+    "tolerance": 0.3,
+    "floor": 10
+  },
+  "gcs java": {
+    "take": 5,
+    "tolerance": 0.2,
+    "floor": 5
+  },
+  "gcs go": {
+    "take": 40,
+    "tolerance": 1.0,
+    "floor": 5
+  },
+  "size java": {
+    "take": 500,
+    "tolerance": 0.08
+  },
+  "size go": {
+    "take": 11500,
+    "tolerance": 0.05
+  },
+  "size rust": {
+    "take": 4000,
+    "tolerance": 0.08
+  },
+  "size zig": {
+    "take": 2500,
+    "tolerance": 0.05
+  }
+}

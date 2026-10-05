@@ -1,0 +1,43 @@
+[tools]
+bun = "1.4.2"
+go = "1.27.1"
+"http:maven" = { version = "3.9.16", url = "https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/{{ version }}/apache-maven-{{ version }}-bin.tar.gz", checksum = "sha256:80ffca22aed9e8b9713a232f3394fd81d7f20322df75efdb2b047dbd3e3a23bb", strip_components = "1", bin_path = "bin" }
+# mold links the Rust port's test binaries (.cargo/config.toml).
+"http:mold" = { version = "2.42.0", platforms = { linux-x64 = { url = "https://github.com/rui314/mold/releases/download/v{{ version }}/mold-{{ version }}-x86_64-linux.tar.gz", checksum = "sha256:f5ed2f6e31d1ada4f07fe766fe0de7a73104d1c5cdc59086fcecc16a43720b6d" }, linux-arm64 = { url = "https://github.com/rui314/mold/releases/download/v{{ version }}/mold-{{ version }}-aarch64-linux.tar.gz", checksum = "sha256:3c9a0a3624aac8a2007569ae50c33b3129a0f0ae8bcc974aeee2f8939d295190" } }, strip_components = "1", bin_path = "bin", os = ["linux"] }
+java = "openjdk-27.0.0"
+jbang = "0.141.0"
+# scc counts the lines of code e2e/design.test.ts holds to 1,000 a file (maxLines).
+"aqua:boyter/scc" = "4.1.0"
+zig = "0.16.0"
+
+[settings]
+# Rust from rust-toolchain.toml, which rustup and cargo read too.
+idiomatic_version_file_enable_tools = ["rust"]
+# Zig from ziglang.org: mise takes a community mirror at random and keeps to it however slow it is (one served
+# a Mac runner 58 kB/s, and its gate ran out of time installing zig).
+zig.use_community_mirrors = false
+
+# The project's own tasks; the everyday ones (setup, check, test, fix, dev, ...) are tools' (.config/mise/conf.d/l3.toml).
+[tasks.smoke]
+description = "Smoke test the crawler against live crawlme.fly.dev"
+run = "./crawl -v -n 10 -t 30 -f https://crawlme.fly.dev"
+
+[tasks.baseline]
+description = "Re-record the bench baselines on CI's perf runner, proposed as a pull request"
+run = "gh workflow run bench-baseline.yml && echo 'about 10 minutes: gh run list -w bench-baseline.yml'"
+
+[tasks.pgo-refresh]
+description = "Retrain the GraalVM PGO profile now (the weekly job)"
+run = "gh workflow run cron-pgo-refresh.yml && echo 'gh run list -w cron-pgo-refresh.yml'"
+
+[tasks.native]
+description = "Build the GraalVM native executable as the release did (PGO, G1): target/crawl-graalvm"
+run = [
+  "./crawl -V >/dev/null",
+  "mise exec java@oracle-graalvm-25.0.4.1.1 -- native-image --pgo=crawler.iprof --gc=G1 -O3 -march=compatibility -jar target/crawler.jar target/crawl-graalvm",
+]
+
+# Entering the checkout (a shell with `mise activate`) sets it up when bun.lock moved since the last setup: a fresh
+# clone, a pull or a switch (`l3 fix` keeps this; the git hooks do the same after a pull or a checkout).
+[hooks]
+enter = "cmp -s bun.lock node_modules/.setup.lock 2>/dev/null || mise run setup >&2"

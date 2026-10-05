@@ -1,0 +1,6 @@
+{"url":"http://localhost:8080/tag/broken/","status":200,"error":null}
+{"url":"http://localhost:8080/tag/truncated-tags","status":200,"error":null}
+{"url":"http://localhost:8080/tag/unclosed-comment","status":200,"error":null}
+{"url":"http://localhost:8080/tag/unclosed-script","status":200,"error":null}
+{"url":"http://localhost:8080/tag/unclosed-quote","status":200,"error":null}
+{"url":"http://localhost:8080/tag/ok","status":200,"error":null}

@@ -1,0 +1,131 @@
+# Written by tools, do not edit: `l3 fix` rewrites this file
+name: cron-pgo-refresh
+on:
+  schedule:
+    - cron: 0 3 * * 0
+  workflow_dispatch: {}
+concurrency:
+  group: cron-pgo-refresh
+  cancel-in-progress: false
+permissions:
+  contents: write
+  actions: write
+defaults:
+  run:
+    shell: bash
+jobs:
+  run:
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: mirror
+        name: mise through the mirror
+        env:
+          MISE_VERSION: 2026.10.0
+          MIRROR: https://cache.l3.ai/mirror
+          MISE_SHA256_LINUX_X64: 57ced973f968b8fbab07aa8e32bd7077d4a357e200a22356d98963c723c6de0a
+          MISE_SHA256_LINUX_ARM64: 4b8cacffac83e8493fc5d1eef25f6365edba73ccbed5a1f3987b7cb3f5079656
+          MISE_SHA256_MACOS_ARM64: 8d2007efdae0c2b64e3955257533e6ec17197bc2fdcbc5dd8f6847f92881deea
+        run: |
+          set -uo pipefail
+          case "$RUNNER_OS-$RUNNER_ARCH" in
+            Linux-X64) target=linux-x64 want=$MISE_SHA256_LINUX_X64;;
+            Linux-ARM64) target=linux-arm64 want=$MISE_SHA256_LINUX_ARM64;;
+            macOS-ARM64) target=macos-arm64 want=$MISE_SHA256_MACOS_ARM64;;
+            *) exit 0;;
+          esac
+          [ -f /etc/alpine-release ] && exit 0
+          dir="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/bin"
+          mkdir -p "$dir"
+          asset="v$MISE_VERSION/mise-v$MISE_VERSION-$target"
+          for url in "$MIRROR/github.com/jdx/mise/releases/download/$asset" "https://github.com/jdx/mise/releases/download/$asset"; do
+            if curl -fsSL --retry 2 --retry-all-errors --connect-timeout 10 -o "$dir/mise.download" "$url" &&
+              [ "$( (sha256sum "$dir/mise.download" 2>/dev/null || shasum -a 256 "$dir/mise.download") | cut -d' ' -f1)" = "$want" ]; then
+              chmod +x "$dir/mise.download" && mv "$dir/mise.download" "$dir/mise"
+              echo "sha256=$want" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::notice::mise $MISE_VERSION not fetched from $url; the next source"
+          done
+          rm -f "$dir/mise.download"
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+        env:
+          MISE_URL_REPLACEMENTS: "{\"regex:^https://github\\\\.com(/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/download/[^/]*[0-9][^/]*/[^/]+)$\":\"https://cache.l3.ai/mirror/github.com$1\",\"regex:^https://dl\\\\.google\\\\.com(/go/go[0-9][^/]*)$\":\"https://cache.l3.ai/mirror/dl.google.com$1\",\"regex:^https://ziglang\\\\.org(/download/[0-9]+\\\\.[0-9]+\\\\.[0-9]+/[^/]+)$\":\"https://cache.l3.ai/mirror/ziglang.org$1\",\"regex:^https://download\\\\.java\\\\.net(/java/GA/jdk[0-9][^/]*/[^?]+)$\":\"https://cache.l3.ai/mirror/download.java.net$1\"}"
+        with:
+          version: 2026.10.0
+          sha256: ${{ steps.mirror.outputs.sha256 }}
+          cache: true
+      - name: Cache bun
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache go
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache cargo
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache maven
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: maven-${{ runner.os }}-${{ runner.arch }}-
+      - name: Dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: l3 fixtures refresh pgo
+        id: run
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: bunx l3 fixtures refresh pgo
+      - name: Check what changed
+        id: check
+        run: |
+          if bunx l3 check --no-drift; then exit 0; fi
+          git checkout HEAD -- fixtures.json 2>/dev/null || true
+          git clean -fdq -- fixtures.json
+          echo "::error::l3 check failed on the run's changes: they are restored, not committed"
+          exit 1
+      - name: Commit, then ci on it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git add -A -- fixtures.json
+          if git diff --cached --quiet; then echo "nothing changed; nothing committed"; exit 0; fi
+          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -q -m 'pgo-refresh on schedule'
+          auth=(-c "http.https://github.com/.extraheader=AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)")
+          for _ in 1 2 3; do
+            if git "${auth[@]}" push origin "HEAD:$GITHUB_REF_NAME"; then
+              gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$GITHUB_REF_NAME" -f deploy_sha="$(git rev-parse HEAD)"
+              exit 0
+            fi
+            git "${auth[@]}" -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' pull -q --rebase origin "$GITHUB_REF_NAME"
+          done
+          echo "::error::the push was rejected three times"
+          exit 1
+      - name: Upload results and logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: cron-pgo-refresh
+          path: |
+            .tools/results/
+            .tools/logs/
+          if-no-files-found: ignore
+          retention-days: 7

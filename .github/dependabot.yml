@@ -1,0 +1,133 @@
+# Written by tools, do not edit: `l3 fix` rewrites this file
+# Every ecosystem this project uses, weekly, grouped: one pull request per ecosystem, one more for security fixes;
+# a release waits out a cooldown (a patch 3 days, a minor or major 7). @l3/tools is its own pull request, daily.
+version: 2
+registries:
+  npm-l3-ai:
+    type: npm-registry
+    url: https://npm.l3.ai
+    token: ${{secrets.TOOLS_REGISTRY_TOKEN}}
+  crates-l3-ai:
+    type: cargo-registry
+    registry: l3
+    url: https://crates.l3.ai/index/
+    token: ${{secrets.TOOLS_REGISTRY_TOKEN}}
+  maven-l3-ai:
+    type: maven-repository
+    url: https://maven.l3.ai
+    username: public
+    password: ${{secrets.TOOLS_REGISTRY_TOKEN}}
+updates:
+  - package-ecosystem: bun
+    directories:
+      - "/"
+    registries:
+      - npm-l3-ai
+    schedule:
+      interval: daily
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 3
+      exclude:
+        - "@l3/tools"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      l3-tools:
+        patterns: ["@l3/tools"]
+      bun:
+        applies-to: version-updates
+        patterns: ["*"]
+        exclude-patterns: ["@l3/tools"]
+      bun-security:
+        applies-to: security-updates
+        patterns: ["*"]
+  - package-ecosystem: cargo
+    directories:
+      - "/ports/rust"
+    registries:
+      - crates-l3-ai
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 3
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      cargo:
+        applies-to: version-updates
+        patterns: ["*"]
+      cargo-security:
+        applies-to: security-updates
+        patterns: ["*"]
+  - package-ecosystem: docker
+    directories:
+      - "/"
+      - "/mocks/crawlme"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      docker:
+        applies-to: version-updates
+        patterns: ["*"]
+      docker-security:
+        applies-to: security-updates
+        patterns: ["*"]
+  - package-ecosystem: gomod
+    directories:
+      - "/ports/go/crawler"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 3
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      gomod:
+        applies-to: version-updates
+        patterns: ["*"]
+      gomod-security:
+        applies-to: security-updates
+        patterns: ["*"]
+  - package-ecosystem: maven
+    directories:
+      - "/"
+    registries:
+      - maven-l3-ai
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 3
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      maven:
+        applies-to: version-updates
+        patterns: ["*"]
+      maven-security:
+        applies-to: security-updates
+        patterns: ["*"]

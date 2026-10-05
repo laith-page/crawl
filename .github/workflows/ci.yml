@@ -1,0 +1,1178 @@
+# Written by tools, do not edit: `l3 fix` rewrites this file
+name: ci
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      flush_cache:
+        description: "Run everything cold: no verdict, cache or layer reused"
+        type: boolean
+        default: false
+      deploy_sha:
+        description: "Deploy this commit after the gate: main's head (empty: the gate alone)"
+        type: string
+        default: ""
+  pull_request: {}
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}${{ github.event_name == 'workflow_dispatch' && inputs.deploy_sha == '' && format('-{0}', github.run_id) || '' }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  # Every job the project's layout gives (static-plan.ts): its verdicts first, with bun alone set up; when every stage
+  # of it stands, nothing after them runs. Its toolchains are its own stages' (`matrix.toolchains`).
+  run:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: ${{ github.event_name == 'pull_request' }}
+      matrix:
+        include:
+          - name: build java
+            id: build-java
+            kind: build
+            runner: ubuntu-26.04-arm
+            timeout: 40
+            toolchains: bun aqua:boyter/scc http:maven java jbang
+            lang: java
+            apt: ""
+            browser: false
+            collect: []
+            stages: []
+            engine: java
+            variant: ""
+            refresh: false
+            building: ""
+            lint: false
+            shard: ""
+            slot: build-java
+          - name: build go checked
+            id: build-go-checked
+            kind: build
+            runner: ubuntu-26.04-arm
+            timeout: 40
+            toolchains: bun aqua:boyter/scc go jbang
+            lang: go
+            apt: ""
+            browser: false
+            collect: []
+            stages: []
+            engine: go
+            variant: checked
+            refresh: false
+            building: ""
+            lint: false
+            shard: ""
+            slot: build-go-checked
+          - name: build rust checked
+            id: build-rust-checked
+            kind: build
+            runner: ubuntu-26.04-arm
+            timeout: 40
+            toolchains: bun aqua:boyter/scc http:mold jbang rust
+            lang: rust
+            apt: ""
+            browser: false
+            collect: []
+            stages: []
+            engine: rust
+            variant: checked
+            refresh: false
+            building: ""
+            lint: false
+            shard: ""
+            slot: build-rust-checked
+          - name: build zig checked
+            id: build-zig-checked
+            kind: build
+            runner: ubuntu-26.04-arm
+            timeout: 40
+            toolchains: bun aqua:boyter/scc jbang zig
+            lang: zig
+            apt: ""
+            browser: false
+            collect: []
+            stages: []
+            engine: zig
+            variant: checked
+            refresh: false
+            building: ""
+            lint: false
+            shard: ""
+            slot: build-zig-checked
+          - name: test java
+            id: engine-java
+            kind: test
+            runner: ubuntu-26.04-arm
+            timeout: 40
+            toolchains: bun aqua:boyter/scc http:maven java jbang
+            lang: java
+            apt: ""
+            browser: false
+            collect: [.tools/agree, .tools/consensus]
+            stages: [java-fmt, java-errorprone, gen, build:java, unit:java, e2e:java]
+            engine: ""
+            variant: ""
+            refresh: false
+            building: java,go checked,rust checked,zig checked
+            lint: false
+            shard: ""
+            slot: engine-java
+          - name: test go
+            id: engine-go
+            kind: test
+            runner: ubuntu-26.04-arm
+            timeout: 40
+            toolchains: bun aqua:boyter/scc go http:maven java jbang
+            lang: go
+            apt: ""
+            browser: false
+            collect: [.tools/agree, .tools/consensus]
+            stages: [go-fmt, go-vet:ports/go/crawler, go-staticcheck:ports/go/crawler, build:go, unit:go, e2e:go]
+            engine: ""
+            variant: ""
+            refresh: false
+            building: java,go checked,rust checked,zig checked
+            lint: false
+            shard: ""
+            slot: engine-go
+          - name: test rust
+            id: engine-rust
+            kind: test
+            runner: ubuntu-26.04-arm
+            timeout: 40
+            toolchains: bun aqua:boyter/scc http:maven http:mold java jbang rust
+            lang: rust
+            apt: ""
+            browser: false
+            collect: [.tools/agree, .tools/consensus]
+            stages: [rust-fmt:ports/rust, rust-clippy:ports/rust, build:rust, unit:rust, e2e:rust]
+            engine: ""
+            variant: ""
+            refresh: false
+            building: java,go checked,rust checked,zig checked
+            lint: false
+            shard: ""
+            slot: engine-rust
+          - name: test zig
+            id: engine-zig
+            kind: test
+            runner: ubuntu-26.04-arm
+            timeout: 40
+            toolchains: bun aqua:boyter/scc http:maven java jbang zig
+            lang: zig
+            apt: ""
+            browser: false
+            collect: [.tools/agree, .tools/consensus]
+            stages: [zig-fmt, build:zig, unit:zig, e2e:zig]
+            engine: ""
+            variant: ""
+            refresh: false
+            building: java,go checked,rust checked,zig checked
+            lint: false
+            shard: ""
+            slot: engine-zig
+          - name: test lint
+            id: lint
+            kind: test
+            runner: ubuntu-26.04-arm
+            timeout: 40
+            toolchains: bun aqua:boyter/scc jbang
+            lang: ""
+            apt: ""
+            browser: false
+            collect: []
+            stages: [ts-fmt, ts-lint, typecheck, gha-lint, gha-audit, osv, py-fmt, py-lint, sbom, trivy, sh-fmt, sh-lint, portable]
+            engine: ""
+            variant: ""
+            refresh: false
+            building: java,go checked,rust checked,zig checked
+            lint: true
+            shard: ""
+            slot: lint
+          - name: test perf java
+            id: suites-perf-java
+            kind: test
+            runner: ubuntu-26.04
+            timeout: 40
+            toolchains: bun aqua:boyter/scc http:maven java jbang zig
+            lang: java
+            apt: valgrind strace time
+            browser: false
+            collect: []
+            stages: [perf:java, build:java]
+            engine: ""
+            variant: ""
+            refresh: false
+            building: ""
+            lint: false
+            shard: ""
+            slot: suites-perf-java
+          - name: test perf go
+            id: suites-perf-go
+            kind: test
+            runner: ubuntu-26.04
+            timeout: 40
+            toolchains: bun aqua:boyter/scc go jbang zig
+            lang: go
+            apt: valgrind strace time
+            browser: false
+            collect: []
+            stages: [perf:go, build:go]
+            engine: ""
+            variant: ""
+            refresh: false
+            building: ""
+            lint: false
+            shard: ""
+            slot: suites-perf-go
+          - name: test perf rust
+            id: suites-perf-rust
+            kind: test
+            runner: ubuntu-26.04
+            timeout: 40
+            toolchains: bun aqua:boyter/scc http:mold jbang rust zig
+            lang: rust
+            apt: valgrind strace time
+            browser: false
+            collect: []
+            stages: [perf:rust, build:rust]
+            engine: ""
+            variant: ""
+            refresh: false
+            building: ""
+            lint: false
+            shard: ""
+            slot: suites-perf-rust
+          - name: test perf zig
+            id: suites-perf-zig
+            kind: test
+            runner: ubuntu-26.04
+            timeout: 40
+            toolchains: bun aqua:boyter/scc jbang zig
+            lang: zig
+            apt: valgrind strace time
+            browser: false
+            collect: []
+            stages: [perf:zig, build:zig]
+            engine: ""
+            variant: ""
+            refresh: false
+            building: ""
+            lint: false
+            shard: ""
+            slot: suites-perf-zig
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: ${{ matrix.timeout }}
+    env:
+      TOOLS_CACHE_URL: https://cache.l3.ai
+      TOOLS_CACHE_BUCKET: ""
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      JOB: ${{ matrix.id }}
+      KIND: ${{ matrix.kind }}
+      TOOLS_CACHE_SLOT: ${{ matrix.slot }}
+      TOOLS_BUILDING: ${{ matrix.building }}
+      TOOLS_JOB_STAGES: ${{ toJSON(matrix.stages) }}
+      TOOLS_SHARD: ${{ matrix.shard }}
+      TOOLS_WHEN: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && 'main') || 'push' }}
+      TOOLS_VERDICTS: ${{ ((github.event.inputs.flush_cache == 'true') || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) && '0' || '1' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # A private submodule (a site's engine/) with the deploy key; set globally, it sent the tag's push over ssh too.
+      # A clone that fails stops here, with one error naming the key, not later at content-digest.
+      - name: Check out submodules
+        env:
+          ENGINE_DEPLOY_KEY: ${{ secrets.ENGINE_DEPLOY_KEY }}
+        run: |-
+          git config -f .gitmodules --get-regexp '^submodule[.].*[.]path$' >/dev/null 2>&1 || exit 0
+          ssh=()
+          if [ -n "$ENGINE_DEPLOY_KEY" ]; then
+            mkdir -p ~/.ssh && chmod 700 ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null
+            eval "$(ssh-agent -s)"
+            ssh-add - <<< "$ENGINE_DEPLOY_KEY"
+            ssh=(-c 'url.git@github.com:.insteadOf=https://github.com/')
+          fi
+          git "${ssh[@]}" submodule update --init --recursive && exit 0
+          subs=$(git config -f .gitmodules --get-regexp '^submodule[.].*[.]path$' | cut -d' ' -f2 | paste -sd, -)
+          if [ -z "$ENGINE_DEPLOY_KEY" ]; then
+            echo "::error title=Submodules::the clone of submodule $subs failed: the ENGINE_DEPLOY_KEY secret is missing. A run Dependabot started sees only Dependabot's secrets: set it there too (DEPENDABOT=ENGINE_DEPLOY_KEY the repository's secrets -- .env)."
+          else
+            echo "::error title=Submodules::the clone of submodule $subs failed with ENGINE_DEPLOY_KEY: is it a deploy key of the submodule's repository?"
+          fi
+          exit 1
+      - id: key
+        shell: bash
+        env:
+          TOOLCHAINS: ${{ matrix.toolchains }}
+        run: |
+          set -euo pipefail
+          slug=$(echo "$TOOLCHAINS" | tr ' :/' '---')
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+          { echo "paths<<EOF"
+            if [ "$TOOLCHAINS" = all ]; then echo "$HOME/.local/share/mise/installs"
+            else
+              # shellcheck disable=SC2086
+              for t in $TOOLCHAINS; do t=${t//:/-}; echo "$HOME/.local/share/mise/installs/${t//\//-}"; done
+            fi
+            case " $TOOLCHAINS " in *" rust "*|" all ") echo "$HOME/.rustup/toolchains"; echo "$HOME/.cargo/bin";; esac
+            echo EOF; } >> "$GITHUB_OUTPUT"
+      - id: toolchain-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.key.outputs.paths }}
+          key: toolchains-${{ runner.os }}-${{ runner.arch }}-${{ steps.key.outputs.slug }}-${{ hashFiles('**/mise.toml', '.config/mise/conf.d/*.toml', '**/rust-toolchain.toml') }}
+          restore-keys: ${{ !((github.event.inputs.flush_cache == 'true') || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) && format('toolchains-{0}-{1}-{2}-', runner.os, runner.arch, steps.key.outputs.slug) || '' }}
+      - id: mirror
+        shell: bash
+        env:
+          MISE_VERSION: "2026.10.0"
+          MIRROR: https://cache.l3.ai/mirror
+          MISE_SHA256_LINUX_X64: 57ced973f968b8fbab07aa8e32bd7077d4a357e200a22356d98963c723c6de0a
+          MISE_SHA256_LINUX_ARM64: 4b8cacffac83e8493fc5d1eef25f6365edba73ccbed5a1f3987b7cb3f5079656
+          MISE_SHA256_MACOS_ARM64: 8d2007efdae0c2b64e3955257533e6ec17197bc2fdcbc5dd8f6847f92881deea
+        run: |
+          set -uo pipefail
+          case "$RUNNER_OS-$RUNNER_ARCH" in
+            Linux-X64) target=linux-x64 want=$MISE_SHA256_LINUX_X64;;
+            Linux-ARM64) target=linux-arm64 want=$MISE_SHA256_LINUX_ARM64;;
+            macOS-ARM64) target=macos-arm64 want=$MISE_SHA256_MACOS_ARM64;;
+            *) exit 0;;
+          esac
+          [ -f /etc/alpine-release ] && exit 0
+          dir="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/bin"
+          mkdir -p "$dir"
+          asset="v$MISE_VERSION/mise-v$MISE_VERSION-$target"
+          for url in "$MIRROR/github.com/jdx/mise/releases/download/$asset" "https://github.com/jdx/mise/releases/download/$asset"; do
+            if curl -fsSL --retry 2 --retry-all-errors --connect-timeout 10 -o "$dir/mise.download" "$url" &&
+              [ "$( (sha256sum "$dir/mise.download" 2>/dev/null || shasum -a 256 "$dir/mise.download") | cut -d' ' -f1)" = "$want" ]; then
+              chmod +x "$dir/mise.download" && mv "$dir/mise.download" "$dir/mise"
+              echo "sha256=$want" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::notice::mise $MISE_VERSION not fetched from $url; the next source"
+          done
+          rm -f "$dir/mise.download"
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+        with:
+          version: "2026.10.0"
+          sha256: ${{ steps.mirror.outputs.sha256 }}
+          cache: false
+          install: false
+      - name: Install bun
+        shell: bash
+        env:
+          TOOLCHAINS: bun
+          MISE_AUTO_INSTALL: "false"
+          RETRY_SECONDS: "10"
+          MISE_URL_REPLACEMENTS: "{\"regex:^https://github\\\\.com(/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/download/[^/]*[0-9][^/]*/[^/]+)$\":\"https://cache.l3.ai/mirror/github.com$1\",\"regex:^https://dl\\\\.google\\\\.com(/go/go[0-9][^/]*)$\":\"https://cache.l3.ai/mirror/dl.google.com$1\",\"regex:^https://ziglang\\\\.org(/download/[0-9]+\\\\.[0-9]+\\\\.[0-9]+/[^/]+)$\":\"https://cache.l3.ai/mirror/ziglang.org$1\",\"regex:^https://download\\\\.java\\\\.net(/java/GA/jdk[0-9][^/]*/[^?]+)$\":\"https://cache.l3.ai/mirror/download.java.net$1\"}"
+          MIRROR_RUSTUP: https://cache.l3.ai/mirror/static.rust-lang.org
+        run: |
+          for try in 1 2 3; do
+            if [ "$try" = 3 ]; then
+              export MISE_URL_REPLACEMENTS='{}'
+              unset RUSTUP_DIST_SERVER
+            else
+              export RUSTUP_DIST_SERVER="$MIRROR_RUSTUP"
+            fi
+            # shellcheck disable=SC2086
+            if [ "$TOOLCHAINS" = all ]; then mise install && break; else mise install $TOOLCHAINS && break; fi
+            [ "$try" = 3 ] && exit 1
+            echo "mise install failed (try $try of 3): again in $((try * RETRY_SECONDS)) s"
+            sleep $((try * RETRY_SECONDS))
+          done
+          mise reshim
+          mise bin-paths >> "$GITHUB_PATH"
+          mise env --json | jq -r 'to_entries[] | select(.key != "PATH") | "\(.key)=\(.value)"' >> "$GITHUB_ENV"
+      - name: Dependencies
+        shell: bash
+        env:
+          MISE_AUTO_INSTALL: "false"
+          MISE_TASK_RUN_AUTO_INSTALL: "false"
+        run: bun install --frozen-lockfile
+      - name: Verdicts
+        id: verdicts
+        env:
+          ENGINE: ${{ matrix.engine }}
+          VARIANT: ${{ matrix.variant }}
+          REFRESH: ${{ matrix.refresh }}
+        run: bun node_modules/@l3/tools/packages/core/src/cli.ts ci verdicts --kind "$KIND" --job "$JOB"
+      - name: Install toolchains
+        if: steps.verdicts.outputs.work != 'false' && (matrix.toolchains != 'bun')
+        shell: bash
+        env:
+          TOOLCHAINS: ${{ matrix.toolchains }}
+          MISE_AUTO_INSTALL: "false"
+          RETRY_SECONDS: "10"
+          MISE_URL_REPLACEMENTS: "{\"regex:^https://github\\\\.com(/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/download/[^/]*[0-9][^/]*/[^/]+)$\":\"https://cache.l3.ai/mirror/github.com$1\",\"regex:^https://dl\\\\.google\\\\.com(/go/go[0-9][^/]*)$\":\"https://cache.l3.ai/mirror/dl.google.com$1\",\"regex:^https://ziglang\\\\.org(/download/[0-9]+\\\\.[0-9]+\\\\.[0-9]+/[^/]+)$\":\"https://cache.l3.ai/mirror/ziglang.org$1\",\"regex:^https://download\\\\.java\\\\.net(/java/GA/jdk[0-9][^/]*/[^?]+)$\":\"https://cache.l3.ai/mirror/download.java.net$1\"}"
+          MIRROR_RUSTUP: https://cache.l3.ai/mirror/static.rust-lang.org
+        run: |
+          for try in 1 2 3; do
+            if [ "$try" = 3 ]; then
+              export MISE_URL_REPLACEMENTS='{}'
+              unset RUSTUP_DIST_SERVER
+            else
+              export RUSTUP_DIST_SERVER="$MIRROR_RUSTUP"
+            fi
+            # shellcheck disable=SC2086
+            if [ "$TOOLCHAINS" = all ]; then mise install && break; else mise install $TOOLCHAINS && break; fi
+            [ "$try" = 3 ] && exit 1
+            echo "mise install failed (try $try of 3): again in $((try * RETRY_SECONDS)) s"
+            sleep $((try * RETRY_SECONDS))
+          done
+          mise reshim
+          mise bin-paths >> "$GITHUB_PATH"
+          mise env --json | jq -r 'to_entries[] | select(.key != "PATH") | "\(.key)=\(.value)"' >> "$GITHUB_ENV"
+      - if: steps.verdicts.outputs.work != 'false' && (matrix.apt != '')
+        id: apt
+        shell: bash
+        env:
+          APT: ${{ matrix.apt }}
+        run: echo "slug=$(echo "$APT" | tr ' ' '-')-$(. /etc/os-release && echo "$VERSION_ID")" >> "$GITHUB_OUTPUT"
+      - if: steps.verdicts.outputs.work != 'false' && (matrix.apt != '')
+        id: apt-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/tools/debs
+          key: apt-${{ runner.os }}-${{ runner.arch }}-${{ steps.apt.outputs.slug }}
+      - if: steps.verdicts.outputs.work != 'false' && (matrix.apt != '')
+        shell: bash
+        env:
+          APT: ${{ matrix.apt }}
+          HIT: ${{ steps.apt-cache.outputs.cache-hit }}
+        run: |
+          set -euo pipefail
+          dir="$HOME/.cache/tools/debs"
+          if [ "$HIT" != true ] || ! ls "$dir"/*.deb >/dev/null 2>&1; then
+            sudo apt-get update -qq >/dev/null
+            sudo apt-get clean
+            # shellcheck disable=SC2086
+            sudo apt-get install -y -qq --download-only --no-install-recommends $APT >/dev/null
+            mkdir -p "$dir" && sudo cp /var/cache/apt/archives/*.deb "$dir"/ && sudo chown -R "$USER" "$dir"
+          fi
+          sudo dpkg -i "$dir"/*.deb >/dev/null
+      - name: Tools' pins
+        if: steps.verdicts.outputs.work != 'false' && (matrix.lint)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/share/tools/mise/installs
+          key: tools-pins-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('node_modules/@l3/tools/packages/core/toolchains.json') }}
+          restore-keys: ${{ !((github.event.inputs.flush_cache == 'true') || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) && format('tools-pins-{0}-{1}-', runner.os, runner.arch) || '' }}
+      - name: Version raised where a publish changed
+        if: steps.verdicts.outputs.work != 'false' && (github.event_name == 'pull_request' && matrix.lint)
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: bunx l3 version --check "$BASE"
+      - name: Prepare
+        if: steps.verdicts.outputs.work != 'false'
+        env:
+          LANG_NAME: ${{ matrix.lang }}
+          BROWSER: ${{ matrix.browser }}
+          APT: ${{ matrix.apt }}
+          TOOLS_VERDICTS: ${{ steps.verdicts.outputs.verdicts }}
+        run: bun node_modules/@l3/tools/packages/core/src/cli.ts ci prepare --kind "$KIND" --job "$JOB"
+      - name: Run
+        if: steps.verdicts.outputs.work != 'false'
+        env:
+          ENGINE: ${{ matrix.engine }}
+          VARIANT: ${{ matrix.variant }}
+          TOOLS_RUNNER: ${{ matrix.runner }}
+          TOOLS_VERDICTS: ${{ steps.verdicts.outputs.verdicts }}
+          TOOLS_GITHUB_TOKEN: ${{ matrix.building != '' && github.token || '' }}
+          SHA: ${{ ((github.event.inputs.flush_cache == 'true') || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) && github.sha || '' }}
+        run: bun node_modules/@l3/tools/packages/core/src/cli.ts ci run --kind "$KIND" --job "$JOB"
+      - name: Finish
+        if: ${{ always() && steps.verdicts.outputs.work != 'false' }}
+        env:
+          LANG_NAME: ${{ matrix.lang }}
+          COLLECT: ${{ toJSON(matrix.collect) }}
+          JOB_STATUS: ${{ job.status }}
+          TOOLS_VERDICTS: ${{ steps.verdicts.outputs.verdicts }}
+          GH_TOKEN: ${{ matrix.kind == 'perf' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && github.token || '' }}
+        run: bun node_modules/@l3/tools/packages/core/src/cli.ts ci finish --kind "$KIND" --job "$JOB"
+      - name: Upload what the agreement reads
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: collect-${{ matrix.id }}
+          path: .tools/collect-${{ matrix.id }}.tar
+          if-no-files-found: ignore
+          retention-days: 1
+      - name: Upload the crash's bundle
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: debug-${{ matrix.id }}
+          path: .tools/debug/
+          if-no-files-found: ignore
+      - name: Upload the stage logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: logs-${{ matrix.id }}
+          path: .tools/logs/
+          if-no-files-found: ignore
+          retention-days: 3
+      - name: Upload browser failures
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: browser-${{ matrix.id }}
+          path: .tools/playwright/results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  image-amd64:
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_sha != '')) }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - id: mirror
+        name: mise through the mirror
+        env:
+          MISE_VERSION: "2026.10.0"
+          MIRROR: https://cache.l3.ai/mirror
+          MISE_SHA256_LINUX_X64: 57ced973f968b8fbab07aa8e32bd7077d4a357e200a22356d98963c723c6de0a
+          MISE_SHA256_LINUX_ARM64: 4b8cacffac83e8493fc5d1eef25f6365edba73ccbed5a1f3987b7cb3f5079656
+          MISE_SHA256_MACOS_ARM64: 8d2007efdae0c2b64e3955257533e6ec17197bc2fdcbc5dd8f6847f92881deea
+        run: |
+          set -uo pipefail
+          case "$RUNNER_OS-$RUNNER_ARCH" in
+            Linux-X64) target=linux-x64 want=$MISE_SHA256_LINUX_X64;;
+            Linux-ARM64) target=linux-arm64 want=$MISE_SHA256_LINUX_ARM64;;
+            macOS-ARM64) target=macos-arm64 want=$MISE_SHA256_MACOS_ARM64;;
+            *) exit 0;;
+          esac
+          [ -f /etc/alpine-release ] && exit 0
+          dir="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/bin"
+          mkdir -p "$dir"
+          asset="v$MISE_VERSION/mise-v$MISE_VERSION-$target"
+          for url in "$MIRROR/github.com/jdx/mise/releases/download/$asset" "https://github.com/jdx/mise/releases/download/$asset"; do
+            if curl -fsSL --retry 2 --retry-all-errors --connect-timeout 10 -o "$dir/mise.download" "$url" &&
+              [ "$( (sha256sum "$dir/mise.download" 2>/dev/null || shasum -a 256 "$dir/mise.download") | cut -d' ' -f1)" = "$want" ]; then
+              chmod +x "$dir/mise.download" && mv "$dir/mise.download" "$dir/mise"
+              echo "sha256=$want" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::notice::mise $MISE_VERSION not fetched from $url; the next source"
+          done
+          rm -f "$dir/mise.download"
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+        env:
+          MISE_URL_REPLACEMENTS: "{\"regex:^https://github\\\\.com(/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/download/[^/]*[0-9][^/]*/[^/]+)$\":\"https://cache.l3.ai/mirror/github.com$1\",\"regex:^https://dl\\\\.google\\\\.com(/go/go[0-9][^/]*)$\":\"https://cache.l3.ai/mirror/dl.google.com$1\",\"regex:^https://ziglang\\\\.org(/download/[0-9]+\\\\.[0-9]+\\\\.[0-9]+/[^/]+)$\":\"https://cache.l3.ai/mirror/ziglang.org$1\",\"regex:^https://download\\\\.java\\\\.net(/java/GA/jdk[0-9][^/]*/[^?]+)$\":\"https://cache.l3.ai/mirror/download.java.net$1\"}"
+        with:
+          version: "2026.10.0"
+          sha256: ${{ steps.mirror.outputs.sha256 }}
+          cache: true
+          install_args: bun
+          cache_key_prefix: mise-bun
+      - name: Cache bun
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
+      - name: Dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Image for linux/amd64
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+        run: bunx l3 deploy --image linux/amd64
+      - name: Upload results and logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: image-amd64
+          path: |
+            .tools/results/
+            .tools/logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  image-arm64:
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_sha != '')) }}
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - id: mirror
+        name: mise through the mirror
+        env:
+          MISE_VERSION: "2026.10.0"
+          MIRROR: https://cache.l3.ai/mirror
+          MISE_SHA256_LINUX_X64: 57ced973f968b8fbab07aa8e32bd7077d4a357e200a22356d98963c723c6de0a
+          MISE_SHA256_LINUX_ARM64: 4b8cacffac83e8493fc5d1eef25f6365edba73ccbed5a1f3987b7cb3f5079656
+          MISE_SHA256_MACOS_ARM64: 8d2007efdae0c2b64e3955257533e6ec17197bc2fdcbc5dd8f6847f92881deea
+        run: |
+          set -uo pipefail
+          case "$RUNNER_OS-$RUNNER_ARCH" in
+            Linux-X64) target=linux-x64 want=$MISE_SHA256_LINUX_X64;;
+            Linux-ARM64) target=linux-arm64 want=$MISE_SHA256_LINUX_ARM64;;
+            macOS-ARM64) target=macos-arm64 want=$MISE_SHA256_MACOS_ARM64;;
+            *) exit 0;;
+          esac
+          [ -f /etc/alpine-release ] && exit 0
+          dir="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/bin"
+          mkdir -p "$dir"
+          asset="v$MISE_VERSION/mise-v$MISE_VERSION-$target"
+          for url in "$MIRROR/github.com/jdx/mise/releases/download/$asset" "https://github.com/jdx/mise/releases/download/$asset"; do
+            if curl -fsSL --retry 2 --retry-all-errors --connect-timeout 10 -o "$dir/mise.download" "$url" &&
+              [ "$( (sha256sum "$dir/mise.download" 2>/dev/null || shasum -a 256 "$dir/mise.download") | cut -d' ' -f1)" = "$want" ]; then
+              chmod +x "$dir/mise.download" && mv "$dir/mise.download" "$dir/mise"
+              echo "sha256=$want" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::notice::mise $MISE_VERSION not fetched from $url; the next source"
+          done
+          rm -f "$dir/mise.download"
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+        env:
+          MISE_URL_REPLACEMENTS: "{\"regex:^https://github\\\\.com(/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/download/[^/]*[0-9][^/]*/[^/]+)$\":\"https://cache.l3.ai/mirror/github.com$1\",\"regex:^https://dl\\\\.google\\\\.com(/go/go[0-9][^/]*)$\":\"https://cache.l3.ai/mirror/dl.google.com$1\",\"regex:^https://ziglang\\\\.org(/download/[0-9]+\\\\.[0-9]+\\\\.[0-9]+/[^/]+)$\":\"https://cache.l3.ai/mirror/ziglang.org$1\",\"regex:^https://download\\\\.java\\\\.net(/java/GA/jdk[0-9][^/]*/[^?]+)$\":\"https://cache.l3.ai/mirror/download.java.net$1\"}"
+        with:
+          version: "2026.10.0"
+          sha256: ${{ steps.mirror.outputs.sha256 }}
+          cache: true
+          install_args: bun
+          cache_key_prefix: mise-bun
+      - name: Cache bun
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
+      - name: Dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Image for linux/arm64
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+        run: bunx l3 deploy --image linux/arm64
+      - name: Upload results and logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: image-arm64
+          path: |
+            .tools/results/
+            .tools/logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  build-binaries:
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_sha != '')) }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - id: mirror
+        name: mise through the mirror
+        env:
+          MISE_VERSION: "2026.10.0"
+          MIRROR: https://cache.l3.ai/mirror
+          MISE_SHA256_LINUX_X64: 57ced973f968b8fbab07aa8e32bd7077d4a357e200a22356d98963c723c6de0a
+          MISE_SHA256_LINUX_ARM64: 4b8cacffac83e8493fc5d1eef25f6365edba73ccbed5a1f3987b7cb3f5079656
+          MISE_SHA256_MACOS_ARM64: 8d2007efdae0c2b64e3955257533e6ec17197bc2fdcbc5dd8f6847f92881deea
+        run: |
+          set -uo pipefail
+          case "$RUNNER_OS-$RUNNER_ARCH" in
+            Linux-X64) target=linux-x64 want=$MISE_SHA256_LINUX_X64;;
+            Linux-ARM64) target=linux-arm64 want=$MISE_SHA256_LINUX_ARM64;;
+            macOS-ARM64) target=macos-arm64 want=$MISE_SHA256_MACOS_ARM64;;
+            *) exit 0;;
+          esac
+          [ -f /etc/alpine-release ] && exit 0
+          dir="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/bin"
+          mkdir -p "$dir"
+          asset="v$MISE_VERSION/mise-v$MISE_VERSION-$target"
+          for url in "$MIRROR/github.com/jdx/mise/releases/download/$asset" "https://github.com/jdx/mise/releases/download/$asset"; do
+            if curl -fsSL --retry 2 --retry-all-errors --connect-timeout 10 -o "$dir/mise.download" "$url" &&
+              [ "$( (sha256sum "$dir/mise.download" 2>/dev/null || shasum -a 256 "$dir/mise.download") | cut -d' ' -f1)" = "$want" ]; then
+              chmod +x "$dir/mise.download" && mv "$dir/mise.download" "$dir/mise"
+              echo "sha256=$want" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::notice::mise $MISE_VERSION not fetched from $url; the next source"
+          done
+          rm -f "$dir/mise.download"
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+        env:
+          MISE_URL_REPLACEMENTS: "{\"regex:^https://github\\\\.com(/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/download/[^/]*[0-9][^/]*/[^/]+)$\":\"https://cache.l3.ai/mirror/github.com$1\",\"regex:^https://dl\\\\.google\\\\.com(/go/go[0-9][^/]*)$\":\"https://cache.l3.ai/mirror/dl.google.com$1\",\"regex:^https://ziglang\\\\.org(/download/[0-9]+\\\\.[0-9]+\\\\.[0-9]+/[^/]+)$\":\"https://cache.l3.ai/mirror/ziglang.org$1\",\"regex:^https://download\\\\.java\\\\.net(/java/GA/jdk[0-9][^/]*/[^?]+)$\":\"https://cache.l3.ai/mirror/download.java.net$1\"}"
+        with:
+          version: "2026.10.0"
+          sha256: ${{ steps.mirror.outputs.sha256 }}
+          cache: true
+      - name: Cache bun
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache go
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache cargo
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache maven
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: maven-${{ runner.os }}-${{ runner.arch }}-
+      - name: Dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Cache the JDKs bundles link from
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/tools/jdks
+          key: jdks-${{ runner.os }}-${{ runner.arch }}-ecf23a836ece649f
+      - name: Build binaries
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+        run: bunx l3 deploy --build binaries --out .tools/prebuilt
+      - name: Hand binaries to the deploy
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: prebuilt-binaries
+          path: .tools/prebuilt/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+      - name: Upload results and logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: build-binaries
+          path: |
+            .tools/results/
+            .tools/logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  build-native:
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_sha != '')) }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - id: mirror
+        name: mise through the mirror
+        env:
+          MISE_VERSION: "2026.10.0"
+          MIRROR: https://cache.l3.ai/mirror
+          MISE_SHA256_LINUX_X64: 57ced973f968b8fbab07aa8e32bd7077d4a357e200a22356d98963c723c6de0a
+          MISE_SHA256_LINUX_ARM64: 4b8cacffac83e8493fc5d1eef25f6365edba73ccbed5a1f3987b7cb3f5079656
+          MISE_SHA256_MACOS_ARM64: 8d2007efdae0c2b64e3955257533e6ec17197bc2fdcbc5dd8f6847f92881deea
+        run: |
+          set -uo pipefail
+          case "$RUNNER_OS-$RUNNER_ARCH" in
+            Linux-X64) target=linux-x64 want=$MISE_SHA256_LINUX_X64;;
+            Linux-ARM64) target=linux-arm64 want=$MISE_SHA256_LINUX_ARM64;;
+            macOS-ARM64) target=macos-arm64 want=$MISE_SHA256_MACOS_ARM64;;
+            *) exit 0;;
+          esac
+          [ -f /etc/alpine-release ] && exit 0
+          dir="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/bin"
+          mkdir -p "$dir"
+          asset="v$MISE_VERSION/mise-v$MISE_VERSION-$target"
+          for url in "$MIRROR/github.com/jdx/mise/releases/download/$asset" "https://github.com/jdx/mise/releases/download/$asset"; do
+            if curl -fsSL --retry 2 --retry-all-errors --connect-timeout 10 -o "$dir/mise.download" "$url" &&
+              [ "$( (sha256sum "$dir/mise.download" 2>/dev/null || shasum -a 256 "$dir/mise.download") | cut -d' ' -f1)" = "$want" ]; then
+              chmod +x "$dir/mise.download" && mv "$dir/mise.download" "$dir/mise"
+              echo "sha256=$want" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::notice::mise $MISE_VERSION not fetched from $url; the next source"
+          done
+          rm -f "$dir/mise.download"
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+        env:
+          MISE_URL_REPLACEMENTS: "{\"regex:^https://github\\\\.com(/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/download/[^/]*[0-9][^/]*/[^/]+)$\":\"https://cache.l3.ai/mirror/github.com$1\",\"regex:^https://dl\\\\.google\\\\.com(/go/go[0-9][^/]*)$\":\"https://cache.l3.ai/mirror/dl.google.com$1\",\"regex:^https://ziglang\\\\.org(/download/[0-9]+\\\\.[0-9]+\\\\.[0-9]+/[^/]+)$\":\"https://cache.l3.ai/mirror/ziglang.org$1\",\"regex:^https://download\\\\.java\\\\.net(/java/GA/jdk[0-9][^/]*/[^?]+)$\":\"https://cache.l3.ai/mirror/download.java.net$1\"}"
+        with:
+          version: "2026.10.0"
+          sha256: ${{ steps.mirror.outputs.sha256 }}
+          cache: true
+      - name: Cache bun
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache go
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/go/pkg/mod
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache cargo
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: cargo-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-${{ runner.arch }}-
+      - name: Cache maven
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: maven-${{ runner.os }}-${{ runner.arch }}-
+      - name: Dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: Cache GraalVM
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.local/share/mise/installs/java/oracle-graalvm-25.0.4.1.1
+            ~/.local/share/mise/installs/java/graalvm-community-25.0.2
+          key: graalvm-${{ runner.os }}-${{ runner.arch }}-9951f01ae9ce5d24
+      - name: Build native
+        env:
+          BUILD_COMMIT: ${{ github.sha }}
+        run: bunx l3 deploy --build native --out .tools/prebuilt
+      - name: Hand native to the deploy
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: prebuilt-native
+          path: .tools/prebuilt/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+      - name: Upload results and logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: build-native
+          path: |
+            .tools/results/
+            .tools/logs/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The agreement and the groups that read others' outputs; then a green main's deploy.yml started. A run that failed
+  # or was cancelled ends before it. (A Dependabot update's fix and merge are the tools-fix and automerge jobs.)
+  done:
+    needs: [run, image-amd64, image-arm64, build-binaries, build-native]
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      actions: write
+    env:
+      TOOLS_CACHE_URL: https://cache.l3.ai
+      TOOLS_CACHE_BUCKET: ""
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      TOOLS_WHEN: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && 'main') || 'push' }}
+      TOOLS_VERDICTS: ${{ ((github.event.inputs.flush_cache == 'true') || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) && '0' || '1' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - id: key
+        shell: bash
+        env:
+          TOOLCHAINS: bun
+        run: |
+          set -euo pipefail
+          slug=$(echo "$TOOLCHAINS" | tr ' :/' '---')
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+          { echo "paths<<EOF"
+            if [ "$TOOLCHAINS" = all ]; then echo "$HOME/.local/share/mise/installs"
+            else
+              # shellcheck disable=SC2086
+              for t in $TOOLCHAINS; do t=${t//:/-}; echo "$HOME/.local/share/mise/installs/${t//\//-}"; done
+            fi
+            case " $TOOLCHAINS " in *" rust "*|" all ") echo "$HOME/.rustup/toolchains"; echo "$HOME/.cargo/bin";; esac
+            echo EOF; } >> "$GITHUB_OUTPUT"
+      - id: toolchain-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.key.outputs.paths }}
+          key: toolchains-${{ runner.os }}-${{ runner.arch }}-${{ steps.key.outputs.slug }}-${{ hashFiles('**/mise.toml', '.config/mise/conf.d/*.toml', '**/rust-toolchain.toml') }}
+          restore-keys: ${{ !((github.event.inputs.flush_cache == 'true') || contains(join(github.event.commits.*.message, ' '), '[flush-cache]')) && format('toolchains-{0}-{1}-{2}-', runner.os, runner.arch, steps.key.outputs.slug) || '' }}
+      - id: mirror
+        shell: bash
+        env:
+          MISE_VERSION: "2026.10.0"
+          MIRROR: https://cache.l3.ai/mirror
+          MISE_SHA256_LINUX_X64: 57ced973f968b8fbab07aa8e32bd7077d4a357e200a22356d98963c723c6de0a
+          MISE_SHA256_LINUX_ARM64: 4b8cacffac83e8493fc5d1eef25f6365edba73ccbed5a1f3987b7cb3f5079656
+          MISE_SHA256_MACOS_ARM64: 8d2007efdae0c2b64e3955257533e6ec17197bc2fdcbc5dd8f6847f92881deea
+        run: |
+          set -uo pipefail
+          case "$RUNNER_OS-$RUNNER_ARCH" in
+            Linux-X64) target=linux-x64 want=$MISE_SHA256_LINUX_X64;;
+            Linux-ARM64) target=linux-arm64 want=$MISE_SHA256_LINUX_ARM64;;
+            macOS-ARM64) target=macos-arm64 want=$MISE_SHA256_MACOS_ARM64;;
+            *) exit 0;;
+          esac
+          [ -f /etc/alpine-release ] && exit 0
+          dir="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/bin"
+          mkdir -p "$dir"
+          asset="v$MISE_VERSION/mise-v$MISE_VERSION-$target"
+          for url in "$MIRROR/github.com/jdx/mise/releases/download/$asset" "https://github.com/jdx/mise/releases/download/$asset"; do
+            if curl -fsSL --retry 2 --retry-all-errors --connect-timeout 10 -o "$dir/mise.download" "$url" &&
+              [ "$( (sha256sum "$dir/mise.download" 2>/dev/null || shasum -a 256 "$dir/mise.download") | cut -d' ' -f1)" = "$want" ]; then
+              chmod +x "$dir/mise.download" && mv "$dir/mise.download" "$dir/mise"
+              echo "sha256=$want" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::notice::mise $MISE_VERSION not fetched from $url; the next source"
+          done
+          rm -f "$dir/mise.download"
+      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+        with:
+          version: "2026.10.0"
+          sha256: ${{ steps.mirror.outputs.sha256 }}
+          cache: false
+          install: false
+      - name: Install toolchains
+        shell: bash
+        env:
+          TOOLCHAINS: bun
+          MISE_AUTO_INSTALL: "false"
+          RETRY_SECONDS: "10"
+          MISE_URL_REPLACEMENTS: "{\"regex:^https://github\\\\.com(/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/download/[^/]*[0-9][^/]*/[^/]+)$\":\"https://cache.l3.ai/mirror/github.com$1\",\"regex:^https://dl\\\\.google\\\\.com(/go/go[0-9][^/]*)$\":\"https://cache.l3.ai/mirror/dl.google.com$1\",\"regex:^https://ziglang\\\\.org(/download/[0-9]+\\\\.[0-9]+\\\\.[0-9]+/[^/]+)$\":\"https://cache.l3.ai/mirror/ziglang.org$1\",\"regex:^https://download\\\\.java\\\\.net(/java/GA/jdk[0-9][^/]*/[^?]+)$\":\"https://cache.l3.ai/mirror/download.java.net$1\"}"
+          MIRROR_RUSTUP: https://cache.l3.ai/mirror/static.rust-lang.org
+        run: |
+          for try in 1 2 3; do
+            if [ "$try" = 3 ]; then
+              export MISE_URL_REPLACEMENTS='{}'
+              unset RUSTUP_DIST_SERVER
+            else
+              export RUSTUP_DIST_SERVER="$MIRROR_RUSTUP"
+            fi
+            # shellcheck disable=SC2086
+            if [ "$TOOLCHAINS" = all ]; then mise install && break; else mise install $TOOLCHAINS && break; fi
+            [ "$try" = 3 ] && exit 1
+            echo "mise install failed (try $try of 3): again in $((try * RETRY_SECONDS)) s"
+            sleep $((try * RETRY_SECONDS))
+          done
+          mise reshim
+          mise bin-paths >> "$GITHUB_PATH"
+          mise env --json | jq -r 'to_entries[] | select(.key != "PATH") | "\(.key)=\(.value)"' >> "$GITHUB_ENV"
+      - name: Dependencies
+        shell: bash
+        env:
+          MISE_AUTO_INSTALL: "false"
+          MISE_TASK_RUN_AUTO_INSTALL: "false"
+        run: bun install --frozen-lockfile
+      - name: Download what the agreement reads
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        env:
+          NODE_OPTIONS: "--disable-warning=DEP0005"
+        with:
+          pattern: collect-*
+          path: .tools/collect/
+          merge-multiple: true
+      - name: Prepare
+        run: bun node_modules/@l3/tools/packages/core/src/cli.ts ci prepare --kind result --job result
+      - name: agree
+        env:
+          TOOLS_AGREE_ANY: "1"
+        run: bun node_modules/@l3/tools/packages/core/src/cli.ts check --job agree
+      - name: Start the deploy
+        if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy_sha != '')) }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          WANT: ${{ inputs.deploy_sha }}
+          RUN: ${{ github.run_id }}
+        run: |
+          if [ -n "$WANT" ] && [ "$WANT" != "$SHA" ]; then
+            echo "::warning::deploy_sha $WANT is not this run's commit $SHA: dispatch ci on main with deploy_sha=$SHA"
+            exit 0
+          fi
+          gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref main -f sha="$SHA" -f run_id="$RUN"
+          echo "::notice::deploy.yml started for $SHA"
+
+  tools-fix:
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' }}
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    outputs:
+      pushed: ${{ steps.push.outputs.pushed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: A tools update?
+        id: need
+        env:
+          MESSAGE: "chore(deps): l3 fix for the tools update"
+        run: |
+          set -euo pipefail
+          if [ "$(git log -1 --format=%s)" = "$MESSAGE" ]; then echo "the last commit is l3 fix: nothing to do"; exit 0; fi
+          if git diff HEAD^ HEAD -- package.json | grep -q '^+.*"@l3/tools"'; then
+            echo "fix=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "@l3/tools did not move: nothing to do"
+          fi
+      - id: mirror
+        name: mise through the mirror
+        if: ${{ steps.need.outputs.fix == 'true' }}
+        env:
+          MISE_VERSION: "2026.10.0"
+          MIRROR: https://cache.l3.ai/mirror
+          MISE_SHA256_LINUX_X64: 57ced973f968b8fbab07aa8e32bd7077d4a357e200a22356d98963c723c6de0a
+          MISE_SHA256_LINUX_ARM64: 4b8cacffac83e8493fc5d1eef25f6365edba73ccbed5a1f3987b7cb3f5079656
+          MISE_SHA256_MACOS_ARM64: 8d2007efdae0c2b64e3955257533e6ec17197bc2fdcbc5dd8f6847f92881deea
+        run: |
+          set -uo pipefail
+          case "$RUNNER_OS-$RUNNER_ARCH" in
+            Linux-X64) target=linux-x64 want=$MISE_SHA256_LINUX_X64;;
+            Linux-ARM64) target=linux-arm64 want=$MISE_SHA256_LINUX_ARM64;;
+            macOS-ARM64) target=macos-arm64 want=$MISE_SHA256_MACOS_ARM64;;
+            *) exit 0;;
+          esac
+          [ -f /etc/alpine-release ] && exit 0
+          dir="${MISE_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/mise}/bin"
+          mkdir -p "$dir"
+          asset="v$MISE_VERSION/mise-v$MISE_VERSION-$target"
+          for url in "$MIRROR/github.com/jdx/mise/releases/download/$asset" "https://github.com/jdx/mise/releases/download/$asset"; do
+            if curl -fsSL --retry 2 --retry-all-errors --connect-timeout 10 -o "$dir/mise.download" "$url" &&
+              [ "$( (sha256sum "$dir/mise.download" 2>/dev/null || shasum -a 256 "$dir/mise.download") | cut -d' ' -f1)" = "$want" ]; then
+              chmod +x "$dir/mise.download" && mv "$dir/mise.download" "$dir/mise"
+              echo "sha256=$want" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::notice::mise $MISE_VERSION not fetched from $url; the next source"
+          done
+          rm -f "$dir/mise.download"
+      - if: ${{ steps.need.outputs.fix == 'true' }}
+        uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+        env:
+          MISE_URL_REPLACEMENTS: "{\"regex:^https://github\\\\.com(/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/releases/download/[^/]*[0-9][^/]*/[^/]+)$\":\"https://cache.l3.ai/mirror/github.com$1\",\"regex:^https://dl\\\\.google\\\\.com(/go/go[0-9][^/]*)$\":\"https://cache.l3.ai/mirror/dl.google.com$1\",\"regex:^https://ziglang\\\\.org(/download/[0-9]+\\\\.[0-9]+\\\\.[0-9]+/[^/]+)$\":\"https://cache.l3.ai/mirror/ziglang.org$1\",\"regex:^https://download\\\\.java\\\\.net(/java/GA/jdk[0-9][^/]*/[^?]+)$\":\"https://cache.l3.ai/mirror/download.java.net$1\"}"
+        with:
+          version: "2026.10.0"
+          sha256: ${{ steps.mirror.outputs.sha256 }}
+          cache: true
+          install_args: bun
+          cache_key_prefix: mise-bun
+      - name: Cache bun
+        if: ${{ steps.need.outputs.fix == 'true' }}
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ runner.arch }}-
+      - name: Dependencies
+        if: ${{ steps.need.outputs.fix == 'true' }}
+        run: bun install --frozen-lockfile --ignore-scripts
+      - name: l3 fix --generated
+        id: fix
+        if: ${{ steps.need.outputs.fix == 'true' }}
+        run: |
+          bunx l3 fix --generated
+          if [ -n "$(git status --porcelain)" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+      - name: App token for the fix's push
+        id: app
+        if: ${{ steps.fix.outputs.changed == 'true' }}
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-workflows: write
+      - name: Commit and push the fix
+        id: push
+        if: ${{ steps.fix.outputs.changed == 'true' }}
+        env:
+          TOKEN: ${{ steps.app.outputs.token }}
+          SLUG: ${{ steps.app.outputs.app-slug }}
+          BRANCH: ${{ github.head_ref }}
+          MESSAGE: "chore(deps): l3 fix for the tools update"
+        run: |
+          set -euo pipefail
+          git config user.name "${SLUG}[bot]"
+          git config user.email "${SLUG}[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "$MESSAGE"
+          git push -q "https://x-access-token:$TOKEN@github.com/$GITHUB_REPOSITORY.git" "HEAD:refs/heads/$BRANCH"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+  automerge:
+    needs: [run, image-amd64, image-arm64, build-binaries, build-native, done, tools-fix]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]' && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && needs.tools-fix.outputs.pushed != 'true' }}
+    runs-on: ubuntu-26.04-arm
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: App token for the merge
+        id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+      - name: Merge Dependabot's update
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --delete-branch

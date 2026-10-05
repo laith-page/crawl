@@ -1,0 +1,5 @@
+{"url":"http://localhost:8080/latin1/","status":200,"error":null}
+{"url":"http://localhost:8080/latin1/caf%EF%BF%BD%EF%BF%BD","status":200,"error":null}
+{"url":"http://localhost:8080/latin1/cut/","status":200,"error":null}
+{"url":"http://localhost:8080/latin1/cut-%EF%BF%BD%EF%BF%BDx","status":200,"error":null}
+{"url":"http://localhost:8080/latin1/surrogate-%EF%BF%BD%EF%BF%BD%EF%BF%BD","status":200,"error":null}

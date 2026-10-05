@@ -1,0 +1,6 @@
+{"url":"http://localhost:8080/kept/","status":200,"error":null}
+{"url":"http://localhost:8080/kept/dir/","status":200,"error":null}
+{"url":"http://localhost:8080/kept/dir","status":200,"error":null}
+{"url":"http://localhost:8080/kept/hello%20world","status":200,"error":null}
+{"url":"http://localhost:8080/kept/query?b=2&a=1","status":200,"error":null}
+{"url":"http://localhost:8080/kept/entities?foo=1&bar=2","status":200,"error":null}

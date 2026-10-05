@@ -1,0 +1,47 @@
+# Written by tools, do not edit: `l3 fix` rewrites this file
+# Written by tools, do not edit: `l3 fix` rewrites this file
+# `mise run <task> [args]`: each task is the `l3` verb of its name; `mise tasks` lists them.
+
+[tasks.setup]
+description = "Install the toolchains, dependencies, hooks and fixtures"
+run = "mise install && bun install && bunx l3 setup"
+
+[tasks.check]
+description = "Everything CI runs: format, lint, all tests, generated files current"
+run = "bunx l3 check"
+
+[tasks.test]
+description = "The tests: unit, e2e, browser, bench (all of them without a kind)"
+run = "bunx l3 test"
+
+[tasks.fix]
+description = "Format, autofix, and rewrite the tools-owned files"
+run = "bunx l3 fix"
+
+[tasks.fmt]
+description = "Format (the same as fix)"
+run = "bunx l3 fix"
+
+[tasks.dev]
+description = "Run the app locally"
+run = "bunx l3 dev"
+
+[tasks.bench]
+description = "Run the benches (--update records a baseline)"
+run = "bunx l3 bench"
+
+[tasks.deploy]
+description = "Deploy (--dry-run shows the plan)"
+run = "bunx l3 deploy"
+
+[tasks.status]
+description = "What is deployed and published, and whether it is healthy"
+run = "bunx l3 status"
+
+[tasks.logs]
+description = "The deployed app's logs"
+run = "bunx l3 logs"
+
+[tasks.version]
+description = "Show versions, or bump one: version <patch|minor|major>"
+run = "bunx l3 version"

@@ -1,0 +1,1662 @@
+{
+  "parity": {
+    "cases": [
+      {
+        "name": "front-page",
+        "start_url": "/",
+        "note": "The root alone."
+      },
+      {
+        "name": "unreadable-cert-file",
+        "start_url": "/",
+        "args": ["-n", "1"],
+        "env": { "SSL_CERT_FILE": "/no-such-crawler-ca-file-for-test.pem" },
+        "stderr": "warning: SSL_CERT_FILE is unreadable; trusting no certificates",
+        "note": "An unreadable explicit CA file warns once at startup; HTTP crawling continues."
+      },
+      {
+        "name": "summary-last",
+        "start_url": "/",
+        "args": ["-f", "-n", "20"],
+        "mode": "merged",
+        "agree": "count",
+        "note": "Every page line is on stdout before the summary is on stderr (DESIGN §2): 2>&1 shows the summary last."
+      },
+      {
+        "name": "flags",
+        "start_url": "/flags/",
+        "note": "The small site the flag cases crawl."
+      },
+      {
+        "name": "env-concurrency",
+        "start_url": "/",
+        "args": ["-v"],
+        "env": { "CRAWL_MAX_CONCURRENCY": "4" },
+        "stderr": "settings: polite, cpus 2, threads 2, concurrency 4 ",
+        "note": "An environment concurrency value applies when no -c flag is given."
+      },
+      {
+        "name": "fast-flag",
+        "start_url": "/",
+        "args": ["-f", "-v"],
+        "stderr": "settings: fast, cpus 2, threads 2, concurrency 48 \\(max 48\\), delay 0s",
+        "note": "Fast mode uses this machine's capacity and starts without delay."
+      },
+      {
+        "name": "verbose-settings",
+        "start_url": "/",
+        "args": ["-v"],
+        "env": { "CRAWL_DELAY": "" },
+        "stderr": "settings: polite, cpus 2, threads 2, concurrency 1 \\(max 48\\), delay 1s, timeout 10s, pages 1000",
+        "note": "The verbose settings line uses the same words in every engine."
+      },
+      {
+        "name": "affinity-cpus",
+        "start_url": "/",
+        "args": ["-v"],
+        "env": { "CRAWL_CPUS": "" },
+        "cpu_affinity": 2,
+        "stderr": "settings: polite, cpus 2, threads 2, concurrency 1 ",
+        "note": "Without CRAWL_CPUS, taskset to two CPUs sets the machine's CPU count."
+      },
+      {
+        "name": "affinity-quota",
+        "start_url": "/",
+        "args": ["-v"],
+        "env": { "CRAWL_CPUS": "" },
+        "cpu_affinity": 4,
+        "cpu_quota": 2,
+        "stderr": "settings: polite, cpus 2, threads 2, concurrency 1 ",
+        "note": "Inside a two-CPU quota and four-CPU affinity, the quota sets the CPU count."
+      },
+      {
+        "name": "relative-references",
+        "start_url": "/relative/",
+        "note": "A name, a dot, a parent, a root path, a query, a fragment, a scheme-relative link and a <base> that is ignored."
+      },
+      {
+        "name": "kept-as-written",
+        "start_url": "/kept/",
+        "note": "What the URL form leaves alone: a trailing slash, an escape, a query's order."
+      },
+      {
+        "name": "duplicate-links",
+        "start_url": "/duplicates/",
+        "note": "A page lists each link once, in the order it first appeared."
+      },
+      {
+        "name": "duplicate-headers",
+        "start_url": "/dup/",
+        "args": ["-c", "1"],
+        "note": "A repeated Content-Type, Location or Retry-After counts its first value (DESIGN §5)."
+      },
+      {
+        "name": "not-links",
+        "start_url": "/not-links/",
+        "note": "What is no link: another scheme, a comment, a raw-text element, and every tag but <a>."
+      },
+      {
+        "name": "scanned-elements",
+        "start_url": "/scanned/",
+        "note": "What is scanned, unlike a browser's DOM: <noscript>, <iframe>, <template>, <xmp>, <svg>, CDATA, and a script's end tag inside its own string."
+      },
+      {
+        "name": "comments",
+        "start_url": "/comments/",
+        "note": "A comment runs from <!-- to the next -->: <!--> does not end one, and --!> does not either (DESIGN §4)."
+      },
+      {
+        "name": "tag-syntax",
+        "start_url": "/tag/",
+        "note": "How a start tag is read: case, whitespace, quotes, a bare href, an empty one, a second href, and a stray quote that runs to its match."
+      },
+      {
+        "name": "broken-markup",
+        "start_url": "/tag/broken/",
+        "note": "A tag, a comment, a script or a quote never closed ends the page's links, quietly."
+      },
+      {
+        "name": "character-references",
+        "start_url": "/refs/",
+        "note": "References as the HTML tokenizer reads an attribute value: named, numeric, without a semicolon, a legacy name before = or a letter, and a reference to nothing as U+FFFD."
+      },
+      {
+        "name": "whitespace-in-hrefs",
+        "start_url": "/ws/",
+        "note": "Whitespace in an href or a Location: stripped at the ends, and a tab or newline inside removed, as the URL Standard does; a space inside percent-encoded."
+      },
+      {
+        "name": "encoding",
+        "start_url": "/encoding/",
+        "note": "The URL form's bytes, each component by its own percent-encode set (the URL Standard): UTF-8 and what a path or query may not hold encoded, a ' in a query too; escapes kept as written, a % that starts none kept; NUL and controls."
+      },
+      {
+        "name": "url-form",
+        "start_url": "/form/",
+        "note": "The URL Standard's parsing: scheme and host case, ports, http: without // as a relative reference, a backslash as a slash, dot segments and escaped dots, a host that is not ASCII (punycode) or holds an escape (decoded), an authority with no host."
+      },
+      {
+        "name": "on-host",
+        "start_url": "/host/",
+        "note": "The host is matched after the form: LOCALHOST is this host, another port or scheme is fetched, a trailing dot, an IP or a subdomain is another host. -t 2: the https link is answered by nothing, and waits.",
+        "args": ["-t", "2"]
+      },
+      {
+        "name": "external-hosts",
+        "start_url": "/external/",
+        "note": "A link off the host is listed and not crawled; a subdomain is off the host."
+      },
+      {
+        "name": "userinfo",
+        "start_url": "/userinfo/",
+        "note": "A link with userinfo is no link: two engines' clients would send it as an Authorization header, and http://host:port@evil.example/ is the phishing form."
+      },
+      {
+        "name": "redirects",
+        "start_url": "/redirects/start",
+        "note": "A 3xx lists its Location alone, resolved as an href: relative, with a fragment, to itself, a 308; a body, no Location, an empty or javascript: one list nothing."
+      },
+      {
+        "name": "statuses",
+        "start_url": "/statuses/",
+        "note": "Only a 2xx text/html body is read: a 201, 205, 206 or 299 is; a 404 with HTML, a PDF or plain text is not."
+      },
+      {
+        "name": "bodiless-statuses",
+        "start_url": "/bodiless/",
+        "note": "A 204 or 304 has no body whatever its headers say (RFC 9112 6.3): the page is its status, with no error and no links, and the crawl goes on."
+      },
+      {
+        "name": "content-types",
+        "start_url": "/ctype/",
+        "note": "text/html by media type alone: case and parameters ignored, XHTML and a missing Content-Type not HTML, a Content-Type sent twice its first."
+      },
+      {
+        "name": "framing",
+        "start_url": "/framing/",
+        "note": "Where a body ends (RFC 9112 §6.3): at the connection's end without a length, HTTP/1.0, chunks over a Content-Length, extensions and trailers, a 100 first, bytes past the length left."
+      },
+      {
+        "name": "chunked-gzip-reuse",
+        "start_url": "/chunked-reuse/",
+        "args": ["-c", "1"],
+        "socket": "chunked-reuse",
+        "note": "A decoded gzip chunk leaves its zero chunk and trailers consumed before the next GET reuses the connection."
+      },
+      {
+        "name": "body-limits",
+        "start_url": "/body/",
+        "note": "5 MiB exactly is read; one byte more, a chunked 6 MiB, or a Content-Length over it is 'body over 5 MiB'; fewer bytes than the length is 'body cut short'."
+      },
+      {
+        "name": "latin1-page",
+        "start_url": "/latin1/",
+        "note": "A body is bytes read as UTF-8: each byte that is not UTF-8 is U+FFFD in the link."
+      },
+      {
+        "name": "utf16-page",
+        "start_url": "/utf16/",
+        "note": "A UTF-16 body has no <a in its bytes: no links, no error."
+      },
+      {
+        "name": "gzip-unasked",
+        "start_url": "/gzip/",
+        "note": "Without Accept-Encoding a Content-Encoding is not decoded: a compressed body has no links."
+      },
+      {
+        "name": "non-html-not-read",
+        "start_url": "/slow-pdf/",
+        "args": ["-t", "2"],
+        "max_elapsed_ms": 30000,
+        "note": "A body that isn't HTML is never read: a PDF trickling one byte every 5 s costs nothing (read, it would take 110 s)."
+      },
+      {
+        "name": "links-limit-distinct",
+        "start_url": "/links-limit/distinct",
+        "args": ["-n", "1"],
+        "note": "The first 1,000 distinct links of a page, in order."
+      },
+      {
+        "name": "links-limit-duplicates",
+        "start_url": "/links-limit/duplicates",
+        "args": ["-n", "1"],
+        "note": "1,006 hrefs of 503 distinct links: 503."
+      },
+      {
+        "name": "links-limit-normalized",
+        "start_url": "/links-limit/normalized",
+        "args": ["-n", "1"],
+        "note": "Distinct after the URL form: /x, /x#a, x, ./x, /links-limit/../links-limit/x are one link; /x? and /%78 are others."
+      },
+      {
+        "name": "links-byte-cap",
+        "start_url": "/cap/",
+        "args": ["-c", "1", "-n", "1000"],
+        "expected_pages": 255,
+        "note": "The first 254 resolved links use 261,510 bytes; the next would pass the 256 KiB link cap."
+      },
+      {
+        "name": "stream-straddle",
+        "start_url": "/stream/straddle",
+        "args": ["-c", "1", "-n", "10"],
+        "expected_pages": 3,
+        "note": "An anchor spanning buffers is found; anchors in a long comment and script are skipped."
+      },
+      {
+        "name": "long-tag",
+        "start_url": "/long-tag/",
+        "args": ["-c", "1", "-n", "10"],
+        "expected_pages": 2,
+        "note": "A tag over 64 KiB gives no link; the following anchor still does."
+      },
+      {
+        "name": "cycle",
+        "start_url": "/cycle/a"
+      },
+      {
+        "name": "self-link",
+        "start_url": "/self-link/"
+      },
+      {
+        "name": "directory-index",
+        "start_url": "/dir-index/",
+        "note": "/dir/ and /dir/index.html are two pages: the form does not know a server's index file."
+      },
+      {
+        "name": "retry-policy",
+        "start_url": "/retry/",
+        "args": ["-t", "60"],
+        "seed": 0,
+        "rules": [
+          {
+            "match": "/retry/twice",
+            "times": 2,
+            "bend": {
+              "status": 503
+            }
+          },
+          {
+            "match": "/retry/thrice",
+            "times": 3,
+            "bend": {
+              "status": 503
+            }
+          },
+          {
+            "match": "/retry/later",
+            "times": 1,
+            "bend": {
+              "status": 503,
+              "headers": {
+                "retry-after": "120"
+              }
+            }
+          },
+          {
+            "match": "/retry/500-once",
+            "times": 1,
+            "bend": {
+              "status": 500
+            }
+          },
+          {
+            "match": "/retry/404-once",
+            "times": 1,
+            "bend": {
+              "status": 404
+            }
+          },
+          {
+            "match": "/retry/429-once",
+            "times": 1,
+            "bend": {
+              "status": 429,
+              "headers": {
+                "retry-after": "1"
+              }
+            }
+          },
+          {
+            "match": "/retry/408-once",
+            "times": 1,
+            "bend": {
+              "status": 408
+            }
+          },
+          {
+            "match": "/retry/502-once",
+            "times": 1,
+            "bend": {
+              "status": 502
+            }
+          },
+          {
+            "match": "/retry/504-once",
+            "times": 1,
+            "bend": {
+              "status": 504
+            }
+          },
+          {
+            "match": "/retry/503-at-once",
+            "times": 1,
+            "bend": {
+              "status": 503,
+              "headers": {
+                "retry-after": "0"
+              }
+            }
+          },
+          {
+            "match": "/retry/dropped-once",
+            "times": 1,
+            "answer": {
+              "raw": [""]
+            }
+          }
+        ],
+        "note": "Up to five attempts for 408, 429, 502, 503, 504 and a dropped connection, none for a 500 or a 404, none when Retry-After passes the deadline (DESIGN §5): 120 s, past the largest -t, never fits. The jittered waits are at most 3.75 s a URL, so -t 60 only catches a hang: at the default -t 10 a wait that fit with a sliver left could have its attempt cut by the deadline on a loaded runner, a timeout in place of the label."
+      },
+      {
+        "name": "retry-fast",
+        "start_url": "/retry/",
+        "args": ["-f", "-t", "60"],
+        "expected": "retry-policy.ndjson",
+        "seed": 0,
+        "rules": [
+          {
+            "match": "/retry/twice",
+            "times": 2,
+            "bend": {
+              "status": 503
+            }
+          },
+          {
+            "match": "/retry/thrice",
+            "times": 3,
+            "bend": {
+              "status": 503
+            }
+          },
+          {
+            "match": "/retry/later",
+            "times": 1,
+            "bend": {
+              "status": 503,
+              "headers": {
+                "retry-after": "120"
+              }
+            }
+          },
+          {
+            "match": "/retry/500-once",
+            "times": 1,
+            "bend": {
+              "status": 500
+            }
+          },
+          {
+            "match": "/retry/404-once",
+            "times": 1,
+            "bend": {
+              "status": 404
+            }
+          },
+          {
+            "match": "/retry/429-once",
+            "times": 1,
+            "bend": {
+              "status": 429,
+              "headers": {
+                "retry-after": "1"
+              }
+            }
+          },
+          {
+            "match": "/retry/408-once",
+            "times": 1,
+            "bend": {
+              "status": 408
+            }
+          },
+          {
+            "match": "/retry/502-once",
+            "times": 1,
+            "bend": {
+              "status": 502
+            }
+          },
+          {
+            "match": "/retry/504-once",
+            "times": 1,
+            "bend": {
+              "status": 504
+            }
+          },
+          {
+            "match": "/retry/503-at-once",
+            "times": 1,
+            "bend": {
+              "status": 503,
+              "headers": {
+                "retry-after": "0"
+              }
+            }
+          },
+          {
+            "match": "/retry/dropped-once",
+            "times": 1,
+            "answer": {
+              "raw": [""]
+            }
+          }
+        ],
+        "note": "Under -f a retry delays only its own fetch; the other workers keep going (DESIGN §2, §5). The jittered waits are at most 3.75 s a URL, so -t 60 only catches a hang: at the default -t 10 a wait that fit with a sliver left could have its attempt cut by the deadline on a loaded runner, a timeout in place of the label."
+      },
+      {
+        "name": "dropped-connections",
+        "start_url": "/dropped/",
+        "args": ["-t", "60"],
+        "seed": 0,
+        "rules": [
+          {
+            "match": "/dropped/drop-*",
+            "answer": {
+              "raw": [""]
+            }
+          }
+        ],
+        "note": "A connection dropped before a status line is retried, then an error; the crawl goes on. The jittered waits are at most 3.75 s a URL, so -t 60 only catches a hang: at the default -t 10 a wait that fit with a sliver left could have its attempt cut by the deadline on a loaded runner, a timeout in place of the label."
+      },
+      {
+        "name": "dead-host",
+        "start_url": "/dead-host/",
+        "args": ["-c", "1", "-t", "60"],
+        "expected_exit_code": 1,
+        "note": "Five refused connections in a row end the crawl with exit 1 and 'error: host unreachable'. Each page's refused connects are retried, with jittered waits of at most 3.75 s, so -t 60 only catches a hang: at the default -t 10 a wait that fit with a sliver left could have its attempt cut by the deadline on a loaded runner, a timeout in place of the label."
+      },
+      {
+        "name": "stale-keepalive",
+        "start_url": "/keepalive/",
+        "seed": 0,
+        "rules": [
+          {
+            "match": "/keepalive/",
+            "bend": {
+              "close": true
+            }
+          },
+          {
+            "match": "/keepalive/a",
+            "bend": {
+              "close": true
+            }
+          }
+        ],
+        "note": "The server closes a kept-alive connection behind a whole answer: the next request on it is retried on a new one, not reported."
+      },
+      {
+        "name": "timeout-mid-body",
+        "start_url": "/limits/trickle-start",
+        "args": ["-t", "2"],
+        "note": "A body that trickles past -t is 'timeout' with no status, though its headers came."
+      },
+      {
+        "name": "timeout-stalled-body",
+        "start_url": "/stalled/",
+        "args": ["-t", "2"],
+        "note": "The headers arrive and the body stalls: -t still ends the fetch, and a timed-out page prints no status."
+      },
+      {
+        "name": "max-pages",
+        "start_url": "/limits/chain/1",
+        "args": ["-n", "3"],
+        "note": "-l bounds the pages fetched; the last page still lists its links."
+      },
+      {
+        "name": "max-pages-one",
+        "start_url": "/flags/",
+        "args": ["-n", "1"],
+        "note": "-l 1: the start page and its links, nothing crawled."
+      },
+      {
+        "name": "start-unreachable",
+        "start_url": "http://localhost:1/",
+        "args": ["-t", "60"],
+        "expected_exit_code": 1,
+        "note": "Five refused connects are 'connect failed'. Port 1: no unprivileged process can listen there, where 59999, in Linux's ephemeral range, can be another test's port (a JVM's crawl timed out against one). The four waits are at most 3.75 s, so -t only catches a hang (-t 1 and -t 5 cut a slow JVM's last attempt)."
+      },
+      {
+        "name": "start-404",
+        "start_url": "/start/404",
+        "expected_exit_code": 1,
+        "note": "A start page at or over 400 fails the crawl: exit 1, its links not read."
+      },
+      {
+        "name": "start-500",
+        "start_url": "/start/500",
+        "expected_exit_code": 1
+      },
+      {
+        "name": "start-redirect-external",
+        "start_url": "/start/redirect-external",
+        "note": "A 3xx start page is not a failure: its Location is listed, off the host, and the crawl ends clean."
+      },
+      {
+        "name": "start-redirect-home",
+        "start_url": "/start/redirect-home"
+      },
+      {
+        "name": "start-uppercase",
+        "start_url": "HTTP://LOCALHOST:8080/flags/",
+        "expected": "flags.ndjson",
+        "note": "The start URL is printed in the form: scheme and host lowercased."
+      },
+      {
+        "name": "start-fragment",
+        "start_url": "/flags/#frag",
+        "expected": "flags.ndjson"
+      },
+      {
+        "name": "start-no-slash",
+        "start_url": "http://localhost:8080",
+        "expected": "front-page.ndjson",
+        "note": "A start URL with no path is the root."
+      },
+      {
+        "name": "flags-at-their-limits",
+        "start_url": "/flags/",
+        "args": ["-c", "256", "-n", "1", "-t", "120"],
+        "expected": "max-pages-one.ndjson"
+      },
+      {
+        "name": "flag-leading-zero",
+        "start_url": "/flags/",
+        "args": ["-c", "08", "-n", "000000000001"],
+        "expected": "max-pages-one.ndjson",
+        "note": "A flag's value is decimal digits: 08 is 8, and leading zeros are any number."
+      },
+      {
+        "name": "flag-thousands-suffix",
+        "start_url": "/flags/",
+        "args": ["-n", "2K", "-n", "1"],
+        "expected": "max-pages-one.ndjson",
+        "note": "An uppercase K suffix is accepted, and a later occurrence of the flag overrides it."
+      },
+      {
+        "name": "flag-page-limit-largest",
+        "start_url": "/flags/",
+        "args": ["-n", "2147483647"],
+        "expected": "flags.ndjson"
+      },
+      {
+        "name": "flags-end-at-dashdash",
+        "start_url": "/flags/",
+        "args": ["-n", "1", "--"],
+        "expected": "max-pages-one.ndjson"
+      },
+      {
+        "name": "sigint-drains",
+        "start_url": "/limits/trickle",
+        "args": ["-t", "10"],
+        "interrupt_after_ms": 1000,
+        "expected_exit_code": 130,
+        "note": "The first signal stops dispatching; the fetch in flight completes and prints."
+      },
+      {
+        "name": "sigterm-drains",
+        "start_url": "/limits/trickle",
+        "args": ["-t", "10"],
+        "interrupt_after_ms": 1000,
+        "interrupt_signal": 15,
+        "expected_exit_code": 143
+      },
+      {
+        "name": "sigint-twice-exits",
+        "start_url": "/limits/trickle",
+        "args": ["-t", "10"],
+        "interrupt_after_ms": 500,
+        "interrupt_again_ms": 500,
+        "expected_exit_code": 130,
+        "max_elapsed_ms": 4000,
+        "note": "A second signal exits at once, the fetch in flight abandoned (DESIGN §2)."
+      },
+      {
+        "name": "sighup-ends",
+        "start_url": "/limits/trickle",
+        "args": ["-t", "10"],
+        "interrupt_after_ms": 1000,
+        "interrupt_signal": 1,
+        "expected_exit_code": 129,
+        "note": "SIGHUP is not handled: its default ends the crawl at once (DESIGN §2)."
+      },
+      {
+        "name": "sigpipe-ignored",
+        "start_url": "/limits/trickle",
+        "args": ["-t", "10"],
+        "interrupt_after_ms": 1000,
+        "interrupt_signal": 13,
+        "note": "A SIGPIPE sent to the crawler is ignored: the crawl goes on and ends clean (DESIGN §2)."
+      },
+      {
+        "name": "closed-pipe",
+        "start_url": "/relative/",
+        "mode": "closepipe",
+        "note": "stdout closed by its reader (crawl | head) ends the crawl with exit 0."
+      },
+      {
+        "name": "tls-graph",
+        "start_url": "https://localhost:8080/https/0?links=4&limit=200",
+        "args": ["-f"],
+        "tls": true,
+        "expected_pages": 200,
+        "no_errors": true,
+        "note": "200 pages over TLS 1.3 and HTTP/1.1 from a server that speaks HTTP/2 too: the crawler offers http/1.1 alone by ALPN (DESIGN §5)."
+      },
+      {
+        "name": "tls12",
+        "start_url": "https://localhost:8080/https/0?links=4&limit=200",
+        "args": ["-f"],
+        "tls": true,
+        "mock_flags": ["--tls-max", "1.2"],
+        "expected": "tls-graph.ndjson",
+        "expected_pages": 200,
+        "no_errors": true,
+        "note": "tls-graph's 200 pages from a server of TLS 1.2 alone and an ECDSA certificate."
+      },
+      {
+        "name": "tls12-rsa",
+        "start_url": "https://localhost:8080/https/0?links=4&limit=200",
+        "args": ["-f"],
+        "tls": true,
+        "mock_flags": ["--tls-max", "1.2", "--tls-key", "rsa"],
+        "expected": "tls-graph.ndjson",
+        "expected_pages": 200,
+        "no_errors": true,
+        "note": "tls-graph's 200 pages from a server of TLS 1.2 alone and an RSA certificate."
+      },
+      {
+        "name": "tls13-rsa",
+        "start_url": "https://localhost:8080/https/0?links=4&limit=200",
+        "args": ["-f"],
+        "tls": true,
+        "mock_flags": ["--tls-min", "1.3", "--tls-key", "rsa"],
+        "expected": "tls-graph.ndjson",
+        "expected_pages": 200,
+        "no_errors": true,
+        "note": "tls-graph's 200 pages from a server of TLS 1.3 alone and an RSA certificate."
+      },
+      {
+        "name": "wire",
+        "start_url": "/wire/",
+        "args": ["-c", "1", "-t", "60"],
+        "site": "wire.json",
+        "plugin": "plugin.ts",
+        "note": "At one request in flight, no other retry can extend the shared gate: verify the target, headers, bounded backoff after two 503s, and Retry-After: 1 (DESIGN §1, §5). The jittered waits are at most 3.75 s a URL, so -t 60 only catches a hang: at the default -t 10 a wait that fit with a sliver left could have its attempt cut by the deadline on a loaded runner, a timeout in place of the label."
+      },
+      {
+        "name": "wire-tls",
+        "start_url": "https://localhost:8080/wire/",
+        "args": ["-c", "1", "-t", "60"],
+        "site": "wire.json",
+        "plugin": "plugin.ts",
+        "tls": true,
+        "note": "The same over TLS."
+      },
+      {
+        "name": "deadline-after-throttle",
+        "start_url": "/relative/",
+        "note": "The -t deadline starts after the throttle wait (DESIGN §5): 8 queued workers at 0.5 s apart outlast a 1 s timeout, and none times out.",
+        "args": ["-c", "8", "-d", "0.5", "-t", "1", "-n", "8"],
+        "no_errors": true,
+        "expected_pages": 8,
+        "agree": "count"
+      }
+    ]
+  },
+  "cli": {
+    "defaults": {
+      "kind": "parity",
+      "server": false,
+      "usage": true,
+      "expected_exit_code": 2
+    },
+    "cases": [
+      {
+        "name": "env-invalid",
+        "args": ["http://localhost:8080/"],
+        "env": { "CRAWL_MAX_CONCURRENCY": "0" },
+        "error_line": "error: CRAWL_MAX_CONCURRENCY is 1 to 256 (see -h)"
+      },
+      {
+        "name": "unknown flag",
+        "args": ["--unknown-flag-test", "http://localhost:8080/"],
+        "error_line": "error: unknown flag --unknown-flag-test (see -h)"
+      },
+      {
+        "name": "missing flag value (-c)",
+        "args": ["-c"],
+        "error_line": "error: -c needs a value (see -h)"
+      },
+      {
+        "name": "missing flag value (-d)",
+        "args": ["-d"],
+        "error_line": "error: -d needs a value (see -h)"
+      },
+      {
+        "name": "missing flag value (-n)",
+        "args": ["-n"],
+        "error_line": "error: -n needs a value (see -h)"
+      },
+      {
+        "name": "missing flag value before url (-c url)",
+        "args": ["-c", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "zero concurrency (-c 0)",
+        "args": ["-c", "0", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "zero page limit (-n 0)",
+        "args": ["-n", "0", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "zero timeout (-t 0)",
+        "args": ["-t", "0", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "invalid integer value (-c abc)",
+        "args": ["-c", "abc", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "concurrency over the range (-c 257)",
+        "args": ["-c", "257", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "concurrency far over the range (-c 100000)",
+        "args": ["-c", "100000", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "concurrency overflow",
+        "args": ["-c", "18446744073709551616", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "timeout over the range (-t 121)",
+        "args": ["-t", "121", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "timeout overflow",
+        "args": ["-t", "99999999999", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "delay over the range (-d 61)",
+        "args": ["-d", "61", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "negative delay (-d -1)",
+        "args": ["-d", "-1", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "argument after the URL",
+        "args": ["http://localhost:8080/", "extra"],
+        "error_line": "error: want one URL, after the flags (see -h)"
+      },
+      {
+        "name": "flag after the URL",
+        "args": ["-n", "5", "http://localhost:8080/", "-c", "2"],
+        "error_line": "error: want one URL, after the flags (see -h)"
+      },
+      {
+        "name": "missing start URL",
+        "args": [],
+        "error_line": "error: want one URL, after the flags (see -h)"
+      },
+      {
+        "name": "invalid URL scheme (ftp://)",
+        "args": ["ftp://localhost:8080/"],
+        "error_line": "error: not an http or https URL (see -h)"
+      },
+      {
+        "name": "hostless URL (http://)",
+        "args": ["http://"],
+        "error_line": "error: not an http or https URL (see -h)"
+      },
+      {
+        "name": "userinfo in the start URL",
+        "args": ["http://u:p@localhost:8080/"],
+        "error_line": "error: not an http or https URL (see -h)"
+      },
+      {
+        "name": "start URL over 8,000 bytes, the link limit",
+        "args": ["http://localhost:8080/{a*7990}"],
+        "error_line": "error: not an http or https URL (see -h)"
+      },
+      {
+        "name": "page limit over the limit (-n 2147483648)",
+        "args": ["-n", "2147483648", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "page limit overflow",
+        "args": ["-n", "99999999999999999999", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "a signed value (-c +8)",
+        "args": ["-c", "+8", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "a decimal value (-c 8.0)",
+        "args": ["-c", "8.0", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "a lowercase suffixed value (-n 2k)",
+        "args": ["-n", "2k", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "an empty value (-c '')",
+        "args": ["-c", "", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "-h after the URL",
+        "args": ["http://localhost:8080/", "-h"],
+        "error_line": "error: want one URL, after the flags (see -h)"
+      },
+      {
+        "name": "a value joined by = (-c=8)",
+        "args": ["-c=8", "http://localhost:8080/"],
+        "error_line": "error: unknown flag -c=8 (see -h)"
+      },
+      {
+        "name": "a value joined on (-c8)",
+        "args": ["-c8", "http://localhost:8080/"],
+        "error_line": "error: unknown flag -c8 (see -h)"
+      },
+      {
+        "name": "a long flag (--c 8)",
+        "args": ["--c", "8", "http://localhost:8080/"],
+        "error_line": "error: unknown flag --c (see -h)"
+      },
+      {
+        "name": "a lone dash",
+        "args": ["-", "http://localhost:8080/"],
+        "error_line": "error: unknown flag - (see -h)"
+      },
+      {
+        "name": "an unknown flag last",
+        "args": ["--nope"],
+        "error_line": "error: unknown flag --nope (see -h)"
+      },
+      {
+        "name": "-t last, with no value",
+        "args": ["-n", "5", "-t"],
+        "error_line": "error: -t needs a value (see -h)"
+      },
+      {
+        "name": "an unknown flag after a bad value (-c 0 -x)",
+        "args": ["-c", "0", "-x", "http://localhost:8080/"],
+        "error_line": "error: unknown flag -x (see -h)"
+      },
+      {
+        "name": "-h after an unknown flag",
+        "args": ["-x", "-h"],
+        "error_line": "error: unknown flag -x (see -h)"
+      },
+      {
+        "name": "a flag as a value (-c -l 5)",
+        "args": ["-c", "-n", "5", "http://localhost:8080/"],
+        "error_line": "error: -c is 1 to 256, -n at least 1, -t 1 to 120, and -d 0 to 60 (see -h)"
+      },
+      {
+        "name": "help lists the contract's flags",
+        "args": ["-h"],
+        "usage": false,
+        "expected_exit_code": 0,
+        "flags": ["-c", "-d", "-f", "-h", "-n", "-t", "-v", "-V"],
+        "help_contains": [
+          "fast: as many requests as this machine takes, no delay",
+          "requests in flight at most      (default 1, 1 to 256)",
+          "seconds between request starts  (default 1, 0 to 60)"
+        ]
+      },
+      {
+        "name": "-h after a bad value (-c 0 -h)",
+        "args": ["-c", "0", "-h"],
+        "usage": false,
+        "expected_exit_code": 0,
+        "note": "-h wins over a value out of its range: the ranges are checked once every flag is read.",
+        "flags": ["-c", "-d", "-f", "-h", "-n", "-t", "-v", "-V"]
+      },
+      {
+        "name": "version on stdout (-V)",
+        "args": ["-V"],
+        "usage": false,
+        "version": true,
+        "expected_exit_code": 0,
+        "agree": false
+      },
+      {
+        "name": "-V after a bad value (-c 0 -V)",
+        "args": ["-c", "0", "-V"],
+        "usage": false,
+        "version": true,
+        "expected_exit_code": 0,
+        "agree": false
+      }
+    ]
+  },
+  "stress": {
+    "defaults": {
+      "args": ["-c", "2", "-n", "5", "-t", "5"]
+    },
+    "cases": [
+      {
+        "name": "hold-on-429",
+        "start_url": "/timing/hold/",
+        "site": "timing.json",
+        "args": ["-c", "2", "-n", "10", "-t", "30", "-d", "0.2"],
+        "plugin": "plugin.ts",
+        "expected_pages": 6,
+        "stdout": "held=yes",
+        "agree": "count",
+        "note": "A 429 with Retry-After: 1 holds every new request start until that second ends. The mock orders its answers by events, not delays (mock/timing.ts); -t and the wall only catch a hang."
+      },
+      {
+        "name": "hold-on-502",
+        "start_url": "/timing/hold-502/",
+        "site": "timing.json",
+        "args": ["-c", "2", "-n", "10", "-t", "30", "-d", "0.2"],
+        "plugin": "plugin.ts",
+        "expected_pages": 6,
+        "stdout": "held=yes",
+        "agree": "count",
+        "note": "A retried 502 with Retry-After: 1 pauses new requests at the same gate. The mock orders its answers by events, not delays (mock/timing.ts); -t and the wall only catch a hang."
+      },
+      {
+        "name": "delay-spaces-requests",
+        "start_url": "/timing/delay/",
+        "site": "timing.json",
+        "args": ["-c", "8", "-n", "6", "-t", "10", "-d", "0.1"],
+        "plugin": "plugin.ts",
+        "env": { "CRAWL_DELAY": "" },
+        "expected_pages": 6,
+        "stdout": "spaced=yes",
+        "agree": "count",
+        "note": "At -c 8, starts are 100 ms apart. The mock stamps the root as it answers it, before any leaf can start, and a leaf no earlier than it started: the four leaves' starts span 300 ms, so 200 ms between the stamps holds whatever the plugin's or the crawler's speed. The wall only catches a hang (5 s failed a loaded JVM's)."
+      },
+      {
+        "name": "random-bytes",
+        "start_url": "/stress/random-bytes"
+      },
+      {
+        "name": "status-999",
+        "start_url": "/stress/status-999",
+        "expected_exit_code": [1]
+      },
+      {
+        "name": "status-000",
+        "start_url": "/stress/status-000",
+        "expected_exit_code": [0, 1],
+        "agree": false
+      },
+      {
+        "name": "status-101",
+        "start_url": "/stress/status-101",
+        "expected_exit_code": [0, 1],
+        "agree": false
+      },
+      {
+        "name": "no-status-line",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "/stress/no-status-line",
+        "max_elapsed_ms": 90000,
+        "expected_exit_code": [1]
+      },
+      {
+        "name": "trickle-headers",
+        "args": ["-c", "2", "-n", "5", "-t", "2"],
+        "start_url": "/stress/trickle-headers",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 7000,
+        "stdout": "error: timeout$"
+      },
+      {
+        "name": "mid-headers",
+        "args": ["-c", "2", "-n", "5", "-t", "3"],
+        "start_url": "/stress/faults/mid-headers",
+        "expected_exit_code": [0, 1],
+        "max_elapsed_ms": 8000,
+        "note": "Headers cut off before their end: an error, or (the JDK, which cannot tell it from a body that ends with the connection) an empty page; never a hang.",
+        "agree": false
+      },
+      {
+        "name": "garbage-status",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "/stress/faults/garbage-status",
+        "max_elapsed_ms": 90000,
+        "expected_exit_code": [1]
+      },
+      {
+        "name": "bad-chunk",
+        "start_url": "/stress/faults/bad-chunk",
+        "expected_exit_code": [1]
+      },
+      {
+        "name": "tcp-reset",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "/stress/faults/reset",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 90000,
+        "note": "The reset keeps its failure label through retries. The four waits are at most 3.75 s, so -t only catches a hang: at -t 5 a retry that fit with a sliver left was cut by the deadline on a loaded runner, and printed timeout."
+      },
+      {
+        "name": "tcp-stall",
+        "args": ["-c", "2", "-n", "5", "-t", "2"],
+        "start_url": "/stress/faults/stall",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 7000,
+        "stdout": "error: timeout$"
+      },
+      {
+        "name": "content-length-neg",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "/stress/content-length-neg",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 90000,
+        "note": "A negative content-length is a malformed head, retried: the four waits are at most 3.75 s, so -t only catches a hang (at -t 5 a wait that fit with a sliver left could have its attempt cut, and print timeout)."
+      },
+      {
+        "name": "content-length-dup",
+        "start_url": "/stress/content-length-dup",
+        "expected_exit_code": [0, 1],
+        "agree": false
+      },
+      {
+        "name": "gzip-bomb",
+        "start_url": "/stress/gzip-unasked",
+        "expected_exit_code": [1],
+        "peak_mb": 192,
+        "note": "A compressed body that would be gigabytes: decompressing it stops at MAX_BODY_BYTES with body over limit and exits 1."
+      },
+      {
+        "name": "retry-after-huge",
+        "args": ["-c", "2", "-n", "5", "-t", "3"],
+        "start_url": "/stress/retry-after-huge",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 8000
+      },
+      {
+        "name": "retry-after-neg",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "/stress/retry-after-neg",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 90000,
+        "note": "A Retry-After that is no whole number of seconds is ignored: the jittered waits, at most 3.75 s, then the last 503. -t only catches a hang: at -t 3 a wait that fit with a sliver left had its attempt cut by the deadline, and printed timeout."
+      },
+      {
+        "name": "retry-after-float",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "/stress/retry-after-float",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 90000,
+        "note": "A Retry-After that is no whole number of seconds is ignored: the jittered waits, at most 3.75 s, then the last 503. -t only catches a hang: at -t 3 a wait that fit with a sliver left had its attempt cut by the deadline, and printed timeout."
+      },
+      {
+        "name": "retry-after-date",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "/stress/retry-after-date",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 90000,
+        "note": "A Retry-After that is no whole number of seconds is ignored: the jittered waits, at most 3.75 s, then the last 503. -t only catches a hang: at -t 3 a wait that fit with a sliver left had its attempt cut by the deadline, and printed timeout."
+      },
+      {
+        "name": "retry-after-10k",
+        "args": ["-c", "2", "-n", "5", "-t", "3"],
+        "start_url": "/stress/retry-after-10k",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 8000
+      },
+      {
+        "name": "retry-after-max",
+        "args": ["-c", "2", "-n", "5", "-t", "3"],
+        "start_url": "/stress/retry-after-max",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 8000
+      },
+      {
+        "name": "loc-crlf",
+        "start_url": "/stress/loc-crlf",
+        "expected_exit_code": [0]
+      },
+      {
+        "name": "loc-lf",
+        "start_url": "/stress/loc-lf",
+        "expected_exit_code": [0, 1],
+        "agree": false
+      },
+      {
+        "name": "loc-nul",
+        "start_url": "/stress/loc-nul",
+        "expected_exit_code": [0, 1],
+        "agree": false
+      },
+      {
+        "name": "loc-ipv6-badport",
+        "start_url": "/stress/loc-ipv6-badport",
+        "expected_exit_code": [0]
+      },
+      {
+        "name": "loc-port99999",
+        "start_url": "/stress/loc-port99999",
+        "expected_exit_code": [0]
+      },
+      {
+        "name": "loc-1mb",
+        "start_url": "/stress/loc-1mb",
+        "expected_exit_code": [0, 1],
+        "link_bytes": true,
+        "agree": false
+      },
+      {
+        "name": "href-1mb",
+        "start_url": "/stress/href-1mb",
+        "link_bytes": true
+      },
+      {
+        "name": "long-link",
+        "start_url": "/stress/long-link",
+        "link_bytes": true
+      },
+      {
+        "name": "deep-nesting",
+        "args": ["-c", "2", "-n", "5", "-t", "10"],
+        "start_url": "/stress/deep-nesting",
+        "max_elapsed_ms": 30000
+      },
+      {
+        "name": "https-on-http-port",
+        "args": ["-c", "2", "-n", "5", "-t", "2"],
+        "start_url": "https://localhost:8080/stress/ok",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 7000,
+        "stdout": "error: "
+      },
+      {
+        "name": "net-unroutable",
+        "args": ["-c", "2", "-n", "5", "-t", "2"],
+        "start_url": "http://192.0.2.1/",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 7000,
+        "server": false,
+        "stdout": "error: timeout$",
+        "or_fast": true
+      },
+      {
+        "name": "dns-nonexistent",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "http://nonexistent-host-xyz.invalid./",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 90000,
+        "server": false,
+        "note": "A name that does not resolve is dns failed, retried: the four waits are at most 3.75 s, so -t only catches a hang (at -t 2, under the waits' 3.75 s, an attempt the deadline cut printed timeout in place of dns failed)."
+      },
+      {
+        "name": "flaky-concurrency",
+        "args": ["-f", "-c", "16", "-n", "30", "-t", "1"],
+        "start_url": "/stress/flaky-concurrency",
+        "max_elapsed_ms": 8000,
+        "agree": "count"
+      },
+      {
+        "name": "mem-big-html",
+        "args": ["-c", "1", "-n", "2", "-t", "25"],
+        "start_url": "/stress/big-html",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 45000
+      },
+      {
+        "name": "mem-big-pdf",
+        "args": ["-c", "1", "-n", "2", "-t", "25"],
+        "start_url": "/stress/big-pdf",
+        "max_elapsed_ms": 45000
+      },
+      {
+        "name": "mem-chunked-huge",
+        "args": ["-c", "1", "-n", "2", "-t", "25"],
+        "start_url": "/stress/chunked-huge",
+        "expected_exit_code": [0, 1],
+        "max_elapsed_ms": 45000,
+        "agree": false
+      },
+      {
+        "name": "mem-header-2mb",
+        "args": ["-c", "1", "-n", "2", "-t", "10"],
+        "start_url": "/stress/header-line-2mb",
+        "expected_exit_code": [0, 1],
+        "agree": false
+      },
+      {
+        "name": "mem-headers-100k",
+        "args": ["-c", "1", "-n", "2", "-t", "10"],
+        "start_url": "/stress/headers-100k",
+        "expected_exit_code": [0, 1],
+        "agree": false
+      },
+      {
+        "name": "mem-5m-links",
+        "args": ["-c", "1", "-n", "2", "-t", "25"],
+        "start_url": "/stress/five-million-links",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 60000
+      },
+      {
+        "name": "mem-tree",
+        "note": "What 1500 pages of a 32-link tree cost in memory. The wall is for a crawl that has stopped, not a speed: 1500 pages is few enough that the JVM is still compiling, and the gate runs every language's tests at once.",
+        "args": ["-c", "8", "-n", "1500", "-t", "10"],
+        "start_url": "/scale/0?links=32&limit=1000000000000",
+        "max_elapsed_ms": 30000,
+        "expected_pages": 1500,
+        "peak_mb": 128,
+        "agree": "count"
+      },
+      {
+        "name": "trap-amp",
+        "args": ["-c", "2", "-n", "5", "-t", "10"],
+        "start_url": "/stress/amp/{p*2000}/",
+        "max_elapsed_ms": 60000,
+        "link_bytes": true
+      },
+      {
+        "name": "trap-wide",
+        "args": ["-c", "8", "-n", "200", "-t", "10"],
+        "start_url": "/stress/wide/0",
+        "max_elapsed_ms": 60000,
+        "link_bytes": true,
+        "agree": "count"
+      },
+      {
+        "name": "trap-calendar",
+        "args": ["-c", "4", "-n", "200", "-t", "10"],
+        "start_url": "/stress/cal?d=0",
+        "expected_pages": 200,
+        "agree": "count"
+      },
+      {
+        "name": "trap-redirects",
+        "args": ["-c", "4", "-n", "100", "-t", "10"],
+        "start_url": "/stress/redir/0",
+        "expected_pages": 100
+      },
+      {
+        "name": "flag-twice",
+        "args": ["-c", "2", "-c", "4", "-n", "5", "-t", "5"],
+        "start_url": "/stress/ok",
+        "expected_exit_code": [0],
+        "note": "A flag given twice keeps its last value (DESIGN §1)."
+      },
+      {
+        "name": "url-space",
+        "start_url": "/stress/a b",
+        "expected_exit_code": [0]
+      },
+      {
+        "name": "env-devfull",
+        "args": ["-c", "8", "-n", "3000", "-t", "10"],
+        "start_url": "/scale/0?links=8&limit=1000000&delay=0",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 30000,
+        "mode": "devfull",
+        "stderr": "cannot write output"
+      },
+      {
+        "name": "env-closed-pipe",
+        "args": ["-c", "8", "-n", "1000000", "-t", "10"],
+        "start_url": "/scale/0?links=32&limit=1000000000000",
+        "max_elapsed_ms": 20000,
+        "mode": "closepipe",
+        "agree": "exit"
+      },
+      {
+        "name": "sigint-ignored",
+        "args": ["-c", "4", "-n", "1000000", "-t", "3"],
+        "start_url": "/slow/0?limit=1000000000000",
+        "expected_exit_code": [130],
+        "max_elapsed_ms": 30000,
+        "interrupt_after_ms": 300,
+        "agree": "exit"
+      },
+      {
+        "name": "sigint-default",
+        "args": ["-c", "4", "-n", "1000000", "-t", "3"],
+        "start_url": "/slow/0?limit=1000000000000",
+        "expected_exit_code": [130],
+        "max_elapsed_ms": 30000,
+        "interrupt_after_ms": 300,
+        "reset_signals": true,
+        "agree": "exit"
+      },
+      {
+        "name": "sigterm",
+        "args": ["-c", "4", "-n", "1000000", "-t", "3"],
+        "start_url": "/slow/0?limit=1000000000000",
+        "expected_exit_code": [143],
+        "max_elapsed_ms": 30000,
+        "interrupt_after_ms": 300,
+        "interrupt_signal": 15,
+        "agree": "exit"
+      },
+      {
+        "name": "sigint-while-the-start-page-loads",
+        "args": ["-c", "2", "-n", "5", "-t", "2"],
+        "start_url": "/stress/faults/stall",
+        "expected_exit_code": [130],
+        "max_elapsed_ms": 7000,
+        "interrupt_after_ms": 300
+      },
+      {
+        "name": "obs-fold",
+        "start_url": "/stress/obs-fold",
+        "expected_exit_code": [0, 1],
+        "note": "An obsolete line fold: the client accepts or refuses it, never hangs.",
+        "agree": false
+      },
+      {
+        "name": "lf-only",
+        "start_url": "/stress/lf-only",
+        "expected_exit_code": [0, 1],
+        "note": "Bare LF between headers: the client's own.",
+        "agree": false
+      },
+      {
+        "name": "space-in-status",
+        "start_url": "/stress/space-in-status",
+        "expected_exit_code": [0, 1],
+        "agree": false
+      },
+      {
+        "name": "http2-status-line",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "/stress/http2-status-line",
+        "max_elapsed_ms": 90000,
+        "expected_exit_code": [1]
+      },
+      {
+        "name": "http09",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "/stress/http09",
+        "max_elapsed_ms": 90000,
+        "expected_exit_code": [1],
+        "note": "No status line at all: an error, never a page."
+      },
+      {
+        "name": "status-2000",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "/stress/status-2000",
+        "max_elapsed_ms": 90000,
+        "expected_exit_code": [1],
+        "note": "A four-digit status is no status: an error, never 2000 and never 200."
+      },
+      {
+        "name": "headers-endless",
+        "start_url": "/stress/headers-endless",
+        "args": ["-c", "1", "-n", "1", "-t", "5"],
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 8000,
+        "peak_mb": 256,
+        "note": "Headers that never end: the client's own limit cuts them, within memory.",
+        "agree": false
+      },
+      {
+        "name": "status-line-endless",
+        "start_url": "/stress/status-line-endless",
+        "args": ["-c", "1", "-n", "1", "-t", "5"],
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 8000,
+        "peak_mb": 256,
+        "agree": false
+      },
+      {
+        "name": "chunk-size-endless",
+        "start_url": "/stress/chunk-size-endless",
+        "args": ["-c", "1", "-n", "1", "-t", "5"],
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 8000,
+        "peak_mb": 256
+      },
+      {
+        "name": "mem-c128-2mib",
+        "start_url": "/stress/big/",
+        "args": ["-c", "128", "-n", "129", "-t", "20"],
+        "expected_pages": 129,
+        "max_elapsed_ms": 20000,
+        "note": "128 bodies of 2 MiB in flight: what wide concurrency costs, under the cap",
+        "agree": "count"
+      },
+      {
+        "name": "mem-c256-5mib",
+        "start_url": "/stress/big5/",
+        "args": ["-c", "256", "-n", "257", "-t", "20"],
+        "expected_pages": 257,
+        "max_elapsed_ms": 30000,
+        "agree": "count",
+        "note": "256 bodies of exactly 5 MiB in flight: streaming keeps each fetch under 512 KiB."
+      },
+      {
+        "name": "mem-m-max",
+        "start_url": "/stress/tiny",
+        "args": ["-n", "2147483647"],
+        "expected_pages": 2,
+        "note": "The largest -l allocates nothing for pages that never come."
+      },
+      {
+        "name": "queue-overflow",
+        "start_url": "/scale/0?links=1000&limit=1000000000000",
+        "args": ["-c", "8", "-n", "3000", "-t", "10"],
+        "expected_pages": 3000,
+        "max_elapsed_ms": 20000,
+        "note": "A thousand links a page fill the 128 MiB queue: links are dropped, the crawl goes on to -l.",
+        "agree": "count"
+      },
+      {
+        "name": "slowloris",
+        "start_url": "/stress/stall-many",
+        "args": ["-f", "-c", "16", "-n", "33", "-t", "2"],
+        "expected_pages": 33,
+        "max_elapsed_ms": 10000,
+        "note": "Every connection stalls: -t ends the fetches in flight together, not one after another (Java crawls at the -c its heap allows).",
+        "agree": "count"
+      },
+      {
+        "name": "overloaded-server",
+        "start_url": "/scale/0?links=4&limit=40",
+        "args": ["-c", "8", "-n", "40", "-t", "10"],
+        "mock_flags": ["--max-in-flight", "4"],
+        "expected_pages": 40,
+        "max_elapsed_ms": 20000,
+        "note": "A server that answers four requests at once sheds the rest with a 503 and Retry-After: every page still comes.",
+        "agree": "count"
+      },
+      {
+        "name": "tls-untrusted",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "https://localhost:8080/https/0?limit=10",
+        "tls": "untrusted",
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 90000,
+        "note": "A certificate the trust store does not accept fails the start page: exit 1, no hang."
+      },
+      {
+        "name": "tls-wrong-name",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "start_url": "https://localhost:8080/https/0?limit=10",
+        "tls": true,
+        "mock_flags": ["--tls-name", "other.example"],
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 90000
+      },
+      {
+        "name": "tls-handshake-stall",
+        "start_url": "https://localhost:8080/https/0?limit=10",
+        "args": ["-c", "2", "-n", "5", "-t", "2"],
+        "tls": true,
+        "mock_flags": ["--tls-stall"],
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 7000,
+        "stdout": "error: timeout$"
+      },
+      {
+        "name": "tls-handshake-reset",
+        "start_url": "https://localhost:8080/https/0?limit=10",
+        "args": ["-c", "2", "-n", "5", "-t", "60"],
+        "tls": true,
+        "mock_flags": ["--tls-reset"],
+        "expected_exit_code": [1],
+        "max_elapsed_ms": 90000,
+        "note": "A handshake the server resets is tls failed, after its four retries. The four waits are at most 3.75 s, so -t only catches a hang: at -t 5 a retry that fit with a sliver left could be cut by the deadline on a loaded runner (a JVM's five handshakes and their backoff took over 2 s on a two-core one), and print timeout."
+      }
+    ]
+  },
+  "consensus": {
+    "defaults": {
+      "args": ["-c", "1", "-t", "10"]
+    },
+    "cases": [
+      {
+        "name": "graph-whole",
+        "start_url": "/scale/0?links=32&limit=1500",
+        "args": ["-c", "8", "-n", "1500", "-t", "10"],
+        "expected_pages": 1500,
+        "note": "A whole site of 1,500 pages: every engine prints the same set, with the same links on each page."
+      },
+      {
+        "name": "calendar-trap",
+        "start_url": "/stress/cal?d=0",
+        "args": ["-c", "1", "-n", "200", "-t", "10"],
+        "expected_pages": 200,
+        "note": "An endless calendar: the first 200 pages in breadth-first order are the same everywhere."
+      },
+      {
+        "name": "redirect-chain",
+        "start_url": "/stress/redir/0",
+        "args": ["-c", "1", "-n", "100", "-t", "10"],
+        "expected_pages": 100
+      },
+      {
+        "name": "wide-trap",
+        "start_url": "/stress/wide/0",
+        "args": ["-c", "1", "-n", "30", "-t", "10"],
+        "expected_pages": 30,
+        "link_bytes": true
+      }
+    ]
+  },
+  "golden": {
+    "defaults": {
+      "archive": "crawlme.warc.gz",
+      "origin": "https://crawlme.fly.dev",
+      "start_url": "/",
+      "expected": "crawlme.ndjson.zst",
+      "args": ["-c", "64", "-n", "42012"]
+    },
+    "cases": [
+      {
+        "name": "crawlme"
+      },
+      {
+        "name": "crawlme-hostile",
+        "seed": 7,
+        "rules": [
+          {
+            "match": "*",
+            "rate": 1,
+            "delay": ["0ms", "5ms"]
+          },
+          {
+            "match": "/blog/*",
+            "rate": 0.01,
+            "answer": {
+              "raw": [""]
+            }
+          },
+          {
+            "match": "/blog/*",
+            "rate": 0.01,
+            "bend": {
+              "truncate": 0.4
+            }
+          },
+          {
+            "match": "/products/*",
+            "rate": 0.01,
+            "bend": {
+              "status": 503,
+              "headers": {
+                "retry-after": "1"
+              }
+            }
+          },
+          {
+            "match": "/products/*",
+            "rate": 0.01,
+            "answer": {
+              "raw": ["HTTP/9.9 \u0001\u0002 not a status line\r\n\r\n"]
+            }
+          },
+          {
+            "match": "*.html",
+            "rate": 0.005,
+            "answer": {
+              "raw": [
+                "HTTP/1.1 200 OK\r\ncontent-type: text/html; charset=utf-8\r\nconnection: close\r\ntransfer-encoding: chunked\r\n\r\nzz\r\nnot a chunk size\r\n"
+              ]
+            }
+          },
+          {
+            "match": "*.html",
+            "rate": 0.005,
+            "bend": {
+              "length_delta": -40
+            }
+          },
+          {
+            "match": "*.html",
+            "rate": 0.001,
+            "answer": {
+              "raw": [""],
+              "gap": "8000ms"
+            }
+          }
+        ],
+        "args": ["-c", "128", "-t", "2", "-n", "42012"],
+        "comment": "Nothing of its own to expect: what a crawler prints for a dead socket is a spec decision, not something Scrapy, Heritrix or Nutch can vouch for. A page that is not damaged must match crawlme; a damaged one is not compared. A page survives when some route to it avoids every damaged page, which does not depend on traversal order, so every implementation reaches the same count. -c 128 and -t 2 hold it to seconds: every fault still ends its page as at -t 5 (a stall in a timeout, a 503 in a 503, a drop in its retries), and none of it depends on order.",
+        "expected_pages": 24059
+      },
+      {
+        "name": "intl",
+        "note": "A generated site of what the recording never has: paths and queries in other scripts and with spaces, escapes kept, relative and absolute redirects, missing pages, links off the host and with fragments. Its expected file is Scrapy's (e2e/oracle/), so nothing under test wrote it.",
+        "site": "intl.json",
+        "archive": null,
+        "origin": "http://localhost:8080",
+        "start_url": "/",
+        "expected": "intl.ndjson.zst",
+        "args": ["-c", "64", "-n", "2000"]
+      }
+    ]
+  }
+}
