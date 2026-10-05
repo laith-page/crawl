@@ -8,7 +8,7 @@
 # passes the key of this folder (`mock-<key>`), not the commit, and deploys the mock only when that key is not served.
 
 # The document with the key in its /version answer.
-FROM docker.io/library/busybox:1.37 AS document
+FROM docker.io/library/busybox:1.38 AS document
 ARG BUILD_COMMIT=dev
 COPY crawlme.json /app/crawlme.json
 RUN sed -i "s/\"commit\": \"dev\"/\"commit\": \"${BUILD_COMMIT}\"/" /app/crawlme.json && grep -q "\"commit\": \"${BUILD_COMMIT}\"" /app/crawlme.json
