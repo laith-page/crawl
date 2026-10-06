@@ -1,0 +1,14 @@
+flowchart TD
+  A["fetch(url)"] --> B["pacer.acquire"]
+  B --> C["Set deadline = now + timeout"]
+  C --> D["HTTP get with deadline"]
+  D --> E{"Result"}
+  E -->|Final status| F["Read selected body or discard → Page"]
+  E -->|Retry status| G["Discard body; Retry-After or jitter"]
+  E -->|Failure| H{"Before status and not timeout?"}
+  H -->|No| I["Return failed Page"]
+  H -->|Yes| G
+  G --> J{"Retries < 4 and wait fits deadline?"}
+  J -->|No| K["Return last Page"]
+  J -->|Yes| L["waitToRetry: shared postpone + acquire in polite mode; local sleep in fast mode"]
+  L --> D

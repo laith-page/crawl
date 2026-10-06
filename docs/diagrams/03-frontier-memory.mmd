@@ -1,0 +1,11 @@
+flowchart TD
+  A["Start URL offered to unique queue"] --> B["pop: FIFO, increment dispatched"]
+  C["push(link)"] --> D{"Page budget available?"}
+  D -->|No| X["Drop, leave unseen"]
+  D -->|Yes| E{"Same host?"}
+  E -->|No| Y["Drop"]
+  E -->|Yes| F["UniqueQueue.offer(hash, link)"]
+  F -->|Already seen or seen table full| Y
+  F -->|Queue full| X
+  F -->|Accepted| I["Hash inserted; URL queued"]
+  I --> B

@@ -1,0 +1,12 @@
+{"url":"http://localhost:8080/ctype/","status":200,"error":null}
+{"url":"http://localhost:8080/ctype/none","status":200,"error":null}
+{"url":"http://localhost:8080/ctype/upper","status":200,"error":null}
+{"url":"http://localhost:8080/ctype/spaced","status":200,"error":null}
+{"url":"http://localhost:8080/ctype/xhtml","status":200,"error":null}
+{"url":"http://localhost:8080/ctype/duplicate","status":200,"error":null}
+{"url":"http://localhost:8080/ctype/duplicate-html-first","status":200,"error":null}
+{"url":"http://localhost:8080/ctype/charset","status":200,"error":null}
+{"url":"http://localhost:8080/ctype/from-upper","status":200,"error":null}
+{"url":"http://localhost:8080/ctype/from-spaced","status":200,"error":null}
+{"url":"http://localhost:8080/ctype/from-duplicate-html-first","status":200,"error":null}
+{"url":"http://localhost:8080/ctype/from-charset","status":200,"error":null}

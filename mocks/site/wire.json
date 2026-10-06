@@ -1,0 +1,42 @@
+{
+  "routes": {
+    "/wire/": {
+      "html": "<!DOCTYPE html><html><body><a href=\"/wire/echo/plain\">x</a><a href=\"/.//wire/echo/from-root\">x</a><a href=\"/wire/echo/a'b?c'd\">x</a><a href=\"/wire/echo/%2e%2E/x\">x</a><a href=\"/wire/echo/%7e?%41\">x</a><a href=\"/wire/echo/sp ace?q r\">x</a><a href=\"/wire/retry/503-twice\">x</a><a href=\"/wire/retry/502-once\">x</a><a href=\"/wire/retry/429-after-1\">x</a></body></html>"
+    },
+    "/wire/echo/*": {
+      "wire": {
+        "mode": "echo"
+      }
+    },
+    "//wire/echo/*": {
+      "wire": {
+        "mode": "echo"
+      }
+    },
+    "/wire/retry/503-twice": {
+      "wire": {
+        "mode": "retry",
+        "fail": 2,
+        "status": 503
+      }
+    },
+    "/wire/retry/502-once": {
+      "wire": {
+        "mode": "retry",
+        "fail": 1,
+        "status": 502
+      }
+    },
+    "/wire/retry/429-after-1": {
+      "wire": {
+        "mode": "retry",
+        "fail": 1,
+        "status": 429,
+        "retry-after": "1"
+      }
+    },
+    "/wire/got": {
+      "text": ""
+    }
+  }
+}

@@ -1,0 +1,15 @@
+// Written by tools, do not edit: `l3 fix` rewrites this file
+{
+  "extends": "./node_modules/@l3/tools/configs/tsconfig.json",
+  "exclude": [
+    "node_modules",
+    ".tools",
+    "dist",
+    "**/target",
+    "**/zig-out",
+    "**/.zig-cache",
+    "docs",
+    "fixtures/expected",
+    "fixtures/urls.json"
+  ]
+}

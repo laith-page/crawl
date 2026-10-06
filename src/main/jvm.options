@@ -1,0 +1,24 @@
+# The JVM flags every Java crawl runs with, shipped or under test: one a line. The modules the runtime jlinks.
+--add-modules java.base,jdk.unsupported
+# The heap sized to the cgroup or the machine.
+-XX:MaxRAMPercentage=75
+-Xlog:disable
+# Warnings on stderr, but not gc+ergo's: a heap that starts at 64 MB or less (a container of 4 GB, the spec's)
+# shrinks -Xmn below and says so, and the shrinking is right where the line would break the contract's stderr.
+-Xlog:all=warning,gc+ergo=error:stderr
+--enable-native-access=ALL-UNNAMED
+-XX:+UnlockDiagnosticVMOptions
+-XX:+UseSerialGC
+# Set, so a heap past 32 GB is capped rather than compressed oops turned off: with MaxRAMPercentage set, the JVM
+# drops them on a host of ~40 GB and more (gcArguments.cpp), and the AOT cache's code with them.
+-XX:+UseCompressedOops
+-XX:-UsePerfData
+-XX:CICompilerCount=2
+-XX:UserThreadWaitAttemptsAtExit=0
+-Djava.util.concurrent.ForkJoinPool.common.parallelism=0
+# One read poller, not one a CPU: a single epoll for the crawl's sockets batches their events. Wall and CPU fell
+# 2-11% from 20,000 pages up (1M wire -5%), the same below, and RSS held.
+-Djdk.readPollers=1
+-Xmn64m
+# TLS key exchange: X25519 then P-256, no post-quantum hybrid (DESIGN §5)
+-Djdk.tls.namedGroups=x25519,secp256r1

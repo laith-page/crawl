@@ -1,0 +1,4 @@
+{"url":"http://localhost:8080/host/","status":200,"error":null}
+{"url":"http://localhost:8080/host/upper","status":200,"error":null}
+{"url":"http://localhost:1/host/other-port","status":null,"error":"connect failed"}
+{"url":"https://localhost:8080/host/other-scheme","status":null,"error":"timeout"}

@@ -1,0 +1,2 @@
+{"url":"http://localhost:8080/stalled/","status":200,"error":null}
+{"url":"http://localhost:8080/stalled/body","status":null,"error":"timeout"}

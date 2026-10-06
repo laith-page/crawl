@@ -1,0 +1,70 @@
+# Written by tools, do not edit: `l3 fix` rewrites this file
+node_modules/
+.tools/
+.env
+.env.local
+.DS_Store
+*.log
+*.pem
+*.key
+*.p12
+*.jks
+dist/
+dependency-reduced-pom.xml
+target/
+zig-out/
+.zig-cache/
+zig-pkg/
+
+# The project's own (l3 fix keeps what follows):
+# GraalVM's PGO profile, a fixtures.json blob (l3 fixtures ensure).
+/crawler.iprof
+*.class
+jsoup/
+weburl-java/
+flamegraphs/
+*.collapsed
+# -V's text, which tools writes before each port's build (Zig's is under .zig-cache).
+/ports/go/crawler/version.txt
+/ports/rust/version.txt
+
+# Build outputs. Every engine builds under its own directory. Anchor root paths with a leading slash: a bare `crawler` would also
+# ignore every new file under src/main/java/crawler/ and ports/go/crawler/.
+ports/rust/target/
+ports/rust/version.txt
+ports/go/crawler/version_gen.go
+ports/zig/zig-out/
+ports/zig/.zig-cache/
+ports/zig/zig-pkg/
+# `go build` run inside ports/go/crawler names its binary after the module
+/ports/go/crawler/crawler
+# what an editor's go build, or one run inside ports/go, writes
+/ports/go/bin/
+
+# What tools writes: builds, logs, daemons, bench reports
+/.ci/
+go.prof
+profile.jfr
+profile1m.jfr
+mock/realworld.json
+
+# Agent worktrees and per-developer settings
+.claude/
+
+# Editor & OS
+.idea/
+*.iml
+.vscode/
+
+# Node/Bun
+__pycache__/
+.ruff_cache/
+.wrangler/
+test-results/
+playwright-report/
+
+# Large fixtures and profiles (downloaded on demand from https://warc.l3.ai and https://cache.l3.ai)
+mock/*.warc.gz
+mock/intl.json
+e2e/expected/crawlme.ndjson.zst
+ports/zig/.tools-checked.build.zig

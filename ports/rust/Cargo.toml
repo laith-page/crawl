@@ -1,0 +1,47 @@
+# its own root: cargo must not look above ports/
+[workspace]
+
+[package]
+name = "crawler"
+version = "0.3.37"
+edition = "2024"
+description = "Prints every page of one host, breadth-first, with its status or error"
+license = "MIT"
+publish = false
+
+[dependencies]
+cli = { version = "0.4.0", registry = "l3" }
+collections = { version = "0.4.0", registry = "l3" }
+workers = { version = "0.1.3", registry = "l3" }
+tokio = { version = "1.53", features = ["rt-multi-thread", "time", "sync"] }
+http-client = { version = "0.2.0", registry = "l3" }
+pacing = { version = "0.2.0", registry = "l3" }
+# the TLS provider: ring, configured by fetcher around certs
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+html = { version = "0.2.8", registry = "l3" }
+signals = { version = "0.2.1", registry = "l3" }
+fastrand = "2.5"
+libc = "0.2"
+# a page's links in document order, deduped (links.rs)
+indexmap = "2.14"
+# the trust store: read at the first https handshake
+certs = { version = "0.4.0", registry = "l3" }
+# the URL Standard's parser
+url = "2.5.18"
+foldhash = "0.2"
+hashing = { version = "0.1.0", registry = "l3" }
+
+[dev-dependencies]
+tokio = { version = "1.53", features = ["macros"] }
+
+# url: rust-url main with two WPT fixes (///host against a special base, invalid Punycode in an ASCII host) and a
+# simple path joined without the parser, published as crates.l3.ai's url 2.5.18 (laith-page/libs, whatwg-url/rust)
+[patch.crates-io]
+url = { version = "2.5.18", registry = "l3" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true

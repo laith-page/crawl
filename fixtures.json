@@ -1,0 +1,30 @@
+{
+  "mocks/crawlme/crawlme.warc.gz": {
+    "sha256": "814ebcc4b319748421894ebc09d5dce17043eeac85b907cf991074681fed5c15",
+    "size": 13273885,
+    "url": "https://warc.l3.ai/crawlme.warc.gz"
+  },
+  "mocks/wikipedia/wikipedia.warc.gz": {
+    "sha256": "208e30cb160d7d4088d6a69c4a6223a3dd63d3bb5aa3fb9ca99de4e329ead7b5",
+    "size": 2023180672,
+    "url": "https://warc.l3.ai/wikipedia.2.warc.gz",
+    "parts": 8
+  },
+  "fixtures/expected/crawlme.ndjson.zst": {
+    "sha256": "9fa10133725b7151988a836be9900e4b77544cd6123677900c36b3acc03a9fbe",
+    "size": 700437,
+    "url": "https://cache.l3.ai/crawlme-expected.ndjson.zst"
+  },
+  "crawler.iprof": {
+    "sha256": "6f249bac41547f6d5bbeffd3993b8600a1dc98cf3ea356ccaf9192bd7856c59c",
+    "size": 6573112,
+    "url": "https://cache.l3.ai/crawler.iprof",
+    "generate": "l3 fixtures refresh pgo"
+  },
+  "fixtures/intl.json": {
+    "sha256": "2de65d182692aee374371b3b1c9fa5da1918c90eb1142e8597fb1ec271f04635",
+    "size": 900781,
+    "url": "https://cache.l3.ai/mock-intl.json",
+    "generate": "bun fixtures/intl.gen.ts"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "routes": {
+    "/timing/hold/": { "html": "<a href=/timing/hold/a><a href=/timing/hold/b>" },
+    "/timing/hold/a": { "timing": { "mode": "hold-429", "next": "/timing/hold/h" } },
+    "/timing/hold/b": { "timing": { "mode": "hold-429", "next": "/timing/hold/h" } },
+    "/timing/hold/h": { "html": "<a href=/timing/hold/c>" },
+    "/timing/hold/c": { "timing": { "mode": "hold-c" } },
+    "/timing/hold/got": { "text": "leaf" },
+    "/timing/hold-502/": {
+      "html": "<a href=/timing/hold-502/a><a href=/timing/hold-502/b>"
+    },
+    "/timing/hold-502/a": { "timing": { "mode": "hold-502", "next": "/timing/hold-502/h" } },
+    "/timing/hold-502/b": { "timing": { "mode": "hold-502", "next": "/timing/hold-502/h" } },
+    "/timing/hold-502/h": { "html": "<a href=/timing/hold-502/c>" },
+    "/timing/hold-502/c": { "timing": { "mode": "hold-c" } },
+    "/timing/delay/": { "timing": { "mode": "delay-root" } },
+    "/timing/delay/1": { "timing": { "mode": "delay-leaf" } },
+    "/timing/delay/2": { "timing": { "mode": "delay-leaf" } },
+    "/timing/delay/3": { "timing": { "mode": "delay-leaf" } },
+    "/timing/delay/4": { "timing": { "mode": "delay-leaf" } },
+    "/timing/delay/got": { "text": "leaf" }
+  }
+}

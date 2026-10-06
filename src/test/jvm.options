@@ -1,0 +1,9 @@
+# What tests run the crawler with, after src/main/jvm.options: under test bodies stream, and the crawler must live
+# within this heap, under the stress cases' memory cap (a 192 MiB cap's ergonomic 64 MiB young-only heap cannot
+# load the trained AOT cache's archived heap objects).
+-Xms64m
+-Xmx200m
+-Xmn48m
+-Xss256k
+-XX:MinHeapFreeRatio=10
+-XX:MaxHeapFreeRatio=30

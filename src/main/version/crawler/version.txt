@@ -1,0 +1,11 @@
+crawl ${project.version} (java, ${build.commit}, java ${java.specification.version})
+  certs ${certs.version}
+  cli ${cli.version}
+  collections ${collections.version}
+  hashing ${hashing.version}
+  html ${html.version}
+  http ${http.version}
+  pacing ${pacing.version}
+  signals ${signals.version}
+  whatwg-url ${whatwg-url.version}
+  workers ${workers.version}

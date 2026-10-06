@@ -1,0 +1,57 @@
+.{
+    .name = .crawler,
+    .version = "0.3.37",
+    .fingerprint = 0xd42e5ea20b04dbc1,
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{
+        .certs = .{
+            .url = "https://zig.l3.ai/certs-0.4.0.tar.gz",
+            .hash = "certs-0.4.0-ekA0iBFBAACu7g3oXXeKBHN_ymRVZnYlrY2JISByOWdC",
+        },
+        .cli = .{
+            .url = "https://zig.l3.ai/cli-0.4.0.tar.gz",
+            .hash = "cli-0.4.0-eDvQi4yWAAAl_v6Z0zexuOuTkbJb_h883AcUglnyzRfb",
+        },
+        .collections = .{
+            .url = "https://zig.l3.ai/collections-0.5.0.tar.gz",
+            .hash = "collections-0.5.0-08ggN_BdAACjV_PCfZwuTsjpfngPjJo_St2eezgg_3FQ",
+        },
+        .hashing = .{
+            .url = "https://zig.l3.ai/hashing-0.2.0.tar.gz",
+            .hash = "hashing-0.2.0-6rpXz-4RAAB3M9cP1-yLukQ5HekbnvfYKEmYXmYQBVPx",
+        },
+        .html = .{
+            .url = "https://zig.l3.ai/html-0.2.9.tar.gz",
+            .hash = "html-0.2.9-drJhxq8hAgAT4LoC--AjukY0bEPYAUNV5K8FkMP3XyPl",
+        },
+        .http = .{
+            .url = "https://zig.l3.ai/http-0.6.0.tar.gz",
+            .hash = "http-0.6.0-5yk5Q5fkAQANhhhwNnq_nLkyq6tELKGFUMMHAZtWQ8CK",
+        },
+        .signals = .{
+            .url = "https://zig.l3.ai/signals-0.2.1.tar.gz",
+            .hash = "signals-0.2.1-oYEaARQMAACSQHpaza0AtxBagPcXbD2JnLRFBzeZyFcw",
+        },
+        .tls = .{
+            .url = "https://zig.l3.ai/tls-0.3.1.tar.gz",
+            .hash = "tls-0.3.1-UCQNbEdtAQCL1oJrdWZN7LcFiQRubXW6fx9O0zn5XSfG",
+        },
+        .@"whatwg-url" = .{
+            .url = "https://zig.l3.ai/whatwg_url-0.5.0.tar.gz",
+            .hash = "whatwg_url-0.5.0-yPjLVJXNBgCT99JbrERGeVHXg8gkYcsNfJTFkQYRt0Ey",
+        },
+        .workers = .{
+            .url = "https://zig.l3.ai/workers-0.2.0.tar.gz",
+            .hash = "workers-0.2.0-hx0kIXU7AAD3JlDQU5vYGzIFPB0KLQbG4VwORwSfq5So",
+        },
+        .pacing = .{
+            .url = "https://zig.l3.ai/pacing-0.2.0.tar.gz",
+            .hash = "pacing-0.2.0-32Yjni4yAADbxMkEPJXxQ0nN1o84c-_xyMzOTsiBtvjd",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

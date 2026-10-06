@@ -1,0 +1,3 @@
+docs/** linguist-documentation
+fixtures/expected/** linguist-generated
+fixtures/urls.json linguist-generated

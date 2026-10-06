@@ -1,0 +1,6 @@
+# The image is built from what l3 built before it (target/crawler.jar), the flags it ships with, and the document of
+# the mock its AOT cache trains against: nothing else of the tree.
+*
+!target/crawler.jar
+!src/main/jvm.options
+!mocks/crawlme/crawlme.json

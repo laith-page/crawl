@@ -1,0 +1,204 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.crawler</groupId>
+    <artifactId>crawler</artifactId>
+    <version>0.3.37</version>
+    <packaging>jar</packaging>
+
+    <name>crawler</name>
+    <description>Prints every page of one host, breadth-first, with its status or error</description>
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/license/mit</url>
+        </license>
+    </licenses>
+
+    <properties>
+        <!-- Java 25 bytecode, built and run on JDK 27: GraalVM 25's native-image reads no newer class files. -->
+        <maven.compiler.release>25</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- The commit -V names: BUILD_COMMIT when the build has one (the env-commit profile), else "dev". -->
+        <build.commit>dev</build.commit>
+        <!-- The direct libraries' versions, here once: the dependencies and -V's list (src/main/version) both read them. -->
+        <cli.version>0.5.0</cli.version>
+        <certs.version>0.4.0</certs.version>
+        <collections.version>0.4.0</collections.version>
+        <workers.version>0.1.5</workers.version>
+        <hashing.version>0.2.0</hashing.version>
+        <html.version>0.3.0</html.version>
+        <http.version>0.4.0</http.version>
+        <pacing.version>0.2.0</pacing.version>
+        <signals.version>0.1.3</signals.version>
+        <whatwg-url.version>0.6.0</whatwg-url.version>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>env-commit</id>
+            <activation>
+                <property>
+                    <name>env.BUILD_COMMIT</name>
+                </property>
+            </activation>
+            <properties>
+                <build.commit>${env.BUILD_COMMIT}</build.commit>
+            </properties>
+        </profile>
+    </profiles>
+
+    <repositories>
+        <repository>
+            <id>l3-maven</id>
+            <name>L3 Maven Repository</name>
+            <url>https://maven.l3.ai</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>ai.l3</groupId>
+            <artifactId>cli</artifactId>
+            <version>${cli.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ai.l3</groupId>
+            <artifactId>certs</artifactId>
+            <version>${certs.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ai.l3</groupId>
+            <artifactId>collections</artifactId>
+            <version>${collections.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ai.l3</groupId>
+            <artifactId>workers</artifactId>
+            <version>${workers.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ai.l3</groupId>
+            <artifactId>hashing</artifactId>
+            <version>${hashing.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ai.l3</groupId>
+            <artifactId>html</artifactId>
+            <version>${html.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ai.l3</groupId>
+            <artifactId>http</artifactId>
+            <version>${http.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ai.l3</groupId>
+            <artifactId>pacing</artifactId>
+            <version>${pacing.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ai.l3</groupId>
+            <artifactId>signals</artifactId>
+            <version>${signals.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>ai.l3</groupId>
+            <artifactId>whatwg-url</artifactId>
+            <version>${whatwg-url.version}</version>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>6.1.3</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>crawler</finalName>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <!-- -V's text (DESIGN §1), the release, commit and library versions filled in from this file. -->
+                <directory>src/main/version</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.16.0</version>
+                <!-- The release comes from the maven.compiler.release property above, set once. -->
+                <configuration>
+                    <parameters>true</parameters>
+                    <!-- Lint is reported, not fatal: ai.l3:signals uses sun.misc.Signal for SIGINT
+                         and a restricted Linker.downcallHandle on purpose, and javac's
+                         proprietary-API warning is not an -Xlint category that can be turned off. -->
+                    <compilerArgs>
+                        <arg>-Xlint:all,-processing,-serial,-restricted</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <argLine>--enable-native-access=ALL-UNNAMED</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.2</version>
+                <dependencies>
+                    <!-- minimizeJar reads the class files with jdependency's own copy of ASM: 2.16 carries
+                         ASM 9.10.1, the first to read JDK 27's; shade 3.6.2's jdependency 2.15 stops at 26. -->
+                    <dependency>
+                        <groupId>org.vafer</groupId>
+                        <artifactId>jdependency</artifactId>
+                        <version>2.16</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <minimizeJar>true</minimizeJar>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>crawler.Main</mainClass>
+                                    <manifestEntries>
+                                        <!-- ai.l3:signals calls libc's signal(2); without this, the JDK warns on stderr. -->
+                                        <Enable-Native-Access>ALL-UNNAMED</Enable-Native-Access>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

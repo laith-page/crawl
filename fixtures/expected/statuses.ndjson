@@ -1,0 +1,14 @@
+{"url":"http://localhost:8080/statuses/","status":200,"error":null}
+{"url":"http://localhost:8080/statuses/404","status":404,"error":null}
+{"url":"http://localhost:8080/statuses/404-html","status":404,"error":null}
+{"url":"http://localhost:8080/statuses/500","status":500,"error":null}
+{"url":"http://localhost:8080/statuses/201","status":201,"error":null}
+{"url":"http://localhost:8080/statuses/205","status":205,"error":null}
+{"url":"http://localhost:8080/statuses/206","status":206,"error":null}
+{"url":"http://localhost:8080/statuses/299","status":299,"error":null}
+{"url":"http://localhost:8080/statuses/doc.pdf","status":200,"error":null}
+{"url":"http://localhost:8080/statuses/plain.txt","status":200,"error":null}
+{"url":"http://localhost:8080/statuses/from-201","status":200,"error":null}
+{"url":"http://localhost:8080/statuses/from-205","status":200,"error":null}
+{"url":"http://localhost:8080/statuses/from-206","status":200,"error":null}
+{"url":"http://localhost:8080/statuses/from-299","status":200,"error":null}

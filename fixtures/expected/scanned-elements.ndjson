@@ -1,0 +1,9 @@
+{"url":"http://localhost:8080/scanned/","status":200,"error":null}
+{"url":"http://localhost:8080/scanned/in-noscript","status":200,"error":null}
+{"url":"http://localhost:8080/scanned/in-iframe","status":200,"error":null}
+{"url":"http://localhost:8080/scanned/in-template","status":200,"error":null}
+{"url":"http://localhost:8080/scanned/in-xmp","status":200,"error":null}
+{"url":"http://localhost:8080/scanned/in-svg","status":200,"error":null}
+{"url":"http://localhost:8080/scanned/in-cdata","status":200,"error":null}
+{"url":"http://localhost:8080/scanned/after-script-string","status":200,"error":null}
+{"url":"http://localhost:8080/scanned/end","status":200,"error":null}

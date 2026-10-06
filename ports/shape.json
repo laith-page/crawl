@@ -1,0 +1,201 @@
+{
+  "messages": "^error: |^crawled \\{\\}|^(timeout|dns failed|connect failed|tls failed|body over 5 MiB|connection reset|malformed response)$",
+  "allowed": [
+    {
+      "items": [
+        "crawler: type failing writer"
+      ],
+      "engines": [
+        "ports/go",
+        "ports/rust"
+      ],
+      "why": "Java's tests subclass OutputStream anonymously, and Zig's use Io.Writer.failing and a local struct: no named type"
+    },
+    {
+      "items": [
+        "fetcher: function failed attempt"
+      ],
+      "engines": [
+        "ports/go"
+      ],
+      "why": "Go classifies errors from Get and Body identically; a helper folds both sites"
+    },
+    {
+      "items": [
+        "frontier: constant home",
+        "frontier: constant roomy"
+      ],
+      "engines": [
+        ".",
+        "ports/rust",
+        "ports/zig"
+      ],
+      "why": "Go's test files share one package: crawler_test.go's"
+    },
+    {
+      "items": [
+        "urls: function expect",
+        "urls: function skip space",
+        "urls: function string"
+      ],
+      "engines": [
+        ".",
+        "ports/rust"
+      ],
+      "why": "the corpus read with a reader for its shape: no JSON parser in the JDK or Rust's std"
+    },
+    {
+      "items": [
+        "links: test a decoded href remains valid across scratch resets and feed chunks"
+      ],
+      "engines": [
+        "ports/zig"
+      ],
+      "why": "Zig's per-page arena and temporary resolution arena require this lifetime regression test"
+    },
+    {
+      "items": [
+        "main: function profile cpu"
+      ],
+      "engines": [
+        "ports/go"
+      ],
+      "why": "the CPU profile tools trains Go's default.pgo from: Java's AOT cache learns in the JVM, Rust's and Zig's have none"
+    },
+    {
+      "items": [
+        "main: function tune malloc"
+      ],
+      "engines": [
+        "ports/rust"
+      ],
+      "why": "Rust uses glibc's mallopt to limit arenas and return large freed blocks through mmap"
+    },
+    {
+      "items": [
+        "main: constant panic"
+      ],
+      "engines": [
+        "ports/zig"
+      ],
+      "why": "the panic handler Zig looks for in the root file"
+    },
+    {
+      "items": [
+        "message: error: {}"
+      ],
+      "engines": [
+        "ports/rust",
+        "ports/zig"
+      ],
+      "why": "a start-up failure returned rather than thrown: the HTTP client's (Rust), an allocation's (Zig)"
+    },
+    {
+      "items": [
+        "fetcher: function close"
+      ],
+      "engines": [
+        "."
+      ],
+      "why": "Java closes its library HTTP client's deadline ticker when the crawl ends"
+    },
+    {
+      "items": [
+        "fetcher: function settle"
+      ],
+      "engines": [
+        "ports/rust"
+      ],
+      "why": "Rust waits for in-flight TLS handshakes to settle before exiting"
+    },
+    {
+      "items": [
+        "machine: function apply",
+        "machine: test apply sets properties unconditionally"
+      ],
+      "engines": [
+        "."
+      ],
+      "why": "Java sets scheduler properties"
+    },
+    {
+      "items": [
+        "machine: function read cpu max"
+      ],
+      "engines": [
+        "ports/zig"
+      ],
+      "why": "Zig reads cpu.max directly for cgroup quota"
+    },
+    {
+      "items": [
+        "tls"
+      ],
+      "engines": [
+        "ports/zig"
+      ],
+      "why": "Zig's TLS is a hook object handed to http.Client; Java, Go and Rust pass trust as client configuration"
+    },
+    {
+      "items": [
+        "options: constant concurrency",
+        "options: constant cpus",
+        "options: constant delay",
+        "options: constant fast",
+        "options: constant max pages",
+        "options: constant timeout",
+        "options: constant user agent",
+        "options: constant verbose"
+      ],
+      "engines": [
+        "."
+      ],
+      "why": "Java's cli uses typed option constants (Flag, Switch, Setting, Text)"
+    },
+    {
+      "items": [
+        "options: constant flags",
+        "options: constant settings",
+        "options: constant switches",
+        "options: constant texts"
+      ],
+      "engines": [
+        "ports/rust"
+      ],
+      "why": "Rust's const command declaration keeps its flag, setting, switch and text slices separately"
+    },
+    {
+      "items": [
+        "main: function fatal",
+        "main: function run",
+        "message: error: internal error: {}"
+      ],
+      "engines": [
+        "ports/go",
+        "ports/rust",
+        "ports/zig"
+      ],
+      "why": "Java delegates fatal handler and process execution to cli.Command.main"
+    },
+    {
+      "items": [
+        "page: function unreachable"
+      ],
+      "engines": [
+        ".",
+        "ports/go",
+        "ports/rust"
+      ],
+      "why": "unreachable is a Zig keyword"
+    },
+    {
+      "items": [
+        "options: constant version"
+      ],
+      "engines": [
+        "ports/go"
+      ],
+      "why": "Go embeds the -V text tools writes (version.txt) into a variable: go build runs no build script, which Maven, build.rs and build.zig hand it through"
+    }
+  ]
+}

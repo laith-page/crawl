@@ -1,0 +1,12 @@
+{"url":"http://localhost:8080/retry/","status":200,"error":null}
+{"url":"http://localhost:8080/retry/twice","status":200,"error":null}
+{"url":"http://localhost:8080/retry/thrice","status":200,"error":null}
+{"url":"http://localhost:8080/retry/later","status":503,"error":null}
+{"url":"http://localhost:8080/retry/500-once","status":500,"error":null}
+{"url":"http://localhost:8080/retry/404-once","status":404,"error":null}
+{"url":"http://localhost:8080/retry/429-once","status":200,"error":null}
+{"url":"http://localhost:8080/retry/408-once","status":200,"error":null}
+{"url":"http://localhost:8080/retry/502-once","status":200,"error":null}
+{"url":"http://localhost:8080/retry/504-once","status":200,"error":null}
+{"url":"http://localhost:8080/retry/503-at-once","status":200,"error":null}
+{"url":"http://localhost:8080/retry/dropped-once","status":200,"error":null}

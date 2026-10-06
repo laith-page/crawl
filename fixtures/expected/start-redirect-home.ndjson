@@ -1,0 +1,2 @@
+{"url":"http://localhost:8080/start/redirect-home","status":301,"error":null}
+{"url":"http://localhost:8080/start/home","status":200,"error":null}
