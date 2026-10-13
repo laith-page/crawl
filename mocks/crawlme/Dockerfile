@@ -13,7 +13,7 @@ ARG BUILD_COMMIT=dev
 COPY crawlme.json /app/crawlme.json
 RUN sed -i "s/\"commit\": \"dev\"/\"commit\": \"${BUILD_COMMIT}\"/" /app/crawlme.json && grep -q "\"commit\": \"${BUILD_COMMIT}\"" /app/crawlme.json
 
-FROM docker.io/l3io/faulty:0.8.14
+FROM docker.io/l3io/faulty:0.8.20
 # /app made by copying the document's directory first: BuildKit gives a directory an ADD --chmod creates that mode too,
 # and /app at 644 (no search bit) left faulty's user unable to open its document ("permission denied").
 COPY --from=document /app/ /app/
